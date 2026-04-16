@@ -1,0 +1,20 @@
+# Environment variables
+.env
+*/.env
+
+# Virtual environments
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Databases
+*.db
+*.sqlite3
+
+# Flask secrets
+flask_backend/.env
+backend/.env

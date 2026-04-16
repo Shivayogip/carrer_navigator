@@ -12,6 +12,8 @@ class ResumeService {
   String resumeText = "";
   List<String> extractedSkills = [];
   String? selectedRole;
+  String? selectedCompany;
+  List<String> dynamicMissingSkills = [];
 
   // 🔥 SET RESUME
   void setResume(String text) {
@@ -19,9 +21,11 @@ class ResumeService {
     extractedSkills = extractSkills(text);
   }
 
-  // 🎯 SET TARGET ROLE
-  void setTargetRole(String role) {
+  // 🎯 SET TARGET ROLE & COMPANY
+  void setTarget(String role, {String? company}) {
     selectedRole = role;
+    selectedCompany = company;
+    dynamicMissingSkills = []; // reset missing skills upon target change
   }
 
   // 🧠 SKILL EXTRACTION LOGIC
@@ -69,5 +73,7 @@ class ResumeService {
     resumeText = "";
     extractedSkills = [];
     selectedRole = null;
+    selectedCompany = null;
+    dynamicMissingSkills = [];
   }
 }

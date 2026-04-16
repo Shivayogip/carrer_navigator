@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'feature_card.dart';
 
 class FeaturesSection extends StatelessWidget {
+  const FeaturesSection({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
