@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../services/api_config.dart';
 
 class ResumeIntelligence extends StatefulWidget {
   const ResumeIntelligence({super.key});
@@ -20,7 +21,7 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
   bool isLoading = false;
 
   Future<void> pickFile() async {
-    final res = await FilePicker.platform.pickFiles(
+    final res = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'docx'],
       withData: true,
@@ -44,7 +45,7 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://localhost:5000/api/resume/upload'),
+        Uri.parse('${ApiConfig.baseUrl}/api/resume/upload'),
       );
 
       if (kIsWeb) {
@@ -75,7 +76,7 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
           if (auth.token != null) {
             try {
               await http.post(
-                Uri.parse('http://localhost:5000/api/user/save_data'),
+                Uri.parse('${ApiConfig.baseUrl}/api/user/save_data'),
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': 'Bearer ${auth.token}',

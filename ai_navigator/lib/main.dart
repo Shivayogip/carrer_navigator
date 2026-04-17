@@ -1,19 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // NOTE: Firebase initialization requires firebase_options.dart 
-  // generated via FlutterFire CLI. For now, we wrap it in a try-catch
-  // to allow the UI to function even if Firebase isn't fully configured yet.
+  if (!kIsWeb) {
+    await NotificationService().init();
+  }
+  
   try {
-    // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyBr6hiegGsYgwy9krg3e8WqsKqglUASFsU",
+          authDomain: "career-navigator-26eae.firebaseapp.com",
+          projectId: "career-navigator-26eae",
+          storageBucket: "career-navigator-26eae.firebasestorage.app",
+          messagingSenderId: "397856270364",
+          appId: "1:397856270364:web:8cec79741970f50c5217d9",
+        ),
+      );
+    } else {
+      await Firebase.initializeApp();
+    }
   } catch (e) {
     debugPrint("Firebase initialization failed: $e");
   }
@@ -57,7 +74,6 @@ class MyApp extends StatelessWidget {
       return const OnboardingScreen();
     }
     
-    // Check auth status if onboarding is done
     return Consumer<AuthService>(
       builder: (context, auth, _) {
         if (auth.user != null) {

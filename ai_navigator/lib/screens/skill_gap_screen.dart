@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../services/resume_service.dart';
 import '../widgets/navbar.dart';
 import 'progress_tracker_screen.dart';
+import '../services/api_config.dart';
 
 class SkillGapScreen extends StatefulWidget {
   const SkillGapScreen({super.key});
@@ -37,7 +38,7 @@ class _SkillGapScreenState extends State<SkillGapScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/ai/chat'),
+        Uri.parse('${ApiConfig.baseUrl}/api/ai/chat'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"message": prompt, "history": []}),
       );

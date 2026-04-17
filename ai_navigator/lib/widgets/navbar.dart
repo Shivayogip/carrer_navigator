@@ -14,6 +14,7 @@ import '../screens/github_analyzer_screen.dart';
 import '../screens/resume_scoring_screen.dart';
 import '../screens/interview_prep_screen.dart';
 import '../screens/progress_tracker_screen.dart';
+import '../screens/profile_screen.dart';
 
 Route fadeRoute(Widget page) {
   return PageRouteBuilder(
@@ -98,7 +99,13 @@ class _NavbarState extends State<Navbar> {
         }),
         const SizedBox(width: 20),
         
-        if (authService.user != null)
+        if (authService.user != null) ...[
+          IconButton(
+            onPressed: () => Navigator.push(context, fadeRoute(const ProfileScreen())),
+            icon: const Icon(Icons.account_circle, color: Color(0xFF6366F1), size: 28),
+            tooltip: "Profile",
+          ),
+          const SizedBox(width: 12),
           ElevatedButton.icon(
             onPressed: () async {
               await authService.signOut();
@@ -114,6 +121,7 @@ class _NavbarState extends State<Navbar> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
+        ],
       ],
     );
   }
@@ -126,7 +134,8 @@ class _NavbarState extends State<Navbar> {
         switch (value) {
           case 0: Navigator.pushAndRemoveUntil(context, fadeRoute(const DashboardScreen()), (route) => false); break;
           case 1: Navigator.push(context, fadeRoute(const ContactUsScreen())); break;
-          case 2: 
+          case 2: Navigator.push(context, fadeRoute(const ProfileScreen())); break;
+          case 3: 
             await authService.signOut();
             if (mounted) Navigator.pushAndRemoveUntil(context, fadeRoute(const LoginScreen()), (route) => false);
             break;
@@ -135,7 +144,8 @@ class _NavbarState extends State<Navbar> {
       itemBuilder: (context) => [
         const PopupMenuItem(value: 0, child: Text("Home")),
         const PopupMenuItem(value: 1, child: Text("Contact Us")),
-        if (authService.user != null) const PopupMenuItem(value: 2, child: Text("Logout", style: TextStyle(color: Colors.red))),
+        if (authService.user != null) const PopupMenuItem(value: 2, child: Text("Profile")),
+        if (authService.user != null) const PopupMenuItem(value: 3, child: Text("Logout", style: TextStyle(color: Colors.red))),
       ],
     );
   }

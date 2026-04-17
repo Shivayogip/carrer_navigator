@@ -13,10 +13,13 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   void _onSignUp() async {
     if (_formKey.currentState!.validate()) {
@@ -28,6 +31,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final success = await authService.signUpWithEmail(
         _emailController.text,
         _passwordController.text,
+        _nameController.text,
       );
 
       setState(() {
@@ -44,7 +48,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Registration failed. Please try again.")),
+            SnackBar(content: Text(authService.authError ?? "Registration failed. Please try again.")),
           );
         }
       }
@@ -128,6 +132,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   const SizedBox(height: 48),
                   TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: "Full Name",
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
                     controller: _emailController,
                     decoration: InputDecoration(
                       labelText: "Email Address",
@@ -149,10 +170,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: "Password",
                       prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -170,10 +202,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _confirmPasswordController,
-                    obscureText: true,
+                    obscureText: _obscureConfirmPassword,
                     decoration: InputDecoration(
                       labelText: "Confirm Password",
                       prefixIcon: const Icon(Icons.lock_reset_outlined),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

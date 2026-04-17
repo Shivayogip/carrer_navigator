@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../services/resume_service.dart';
+import '../services/api_config.dart';
 
 class InterviewPrepScreen extends StatefulWidget {
   const InterviewPrepScreen({super.key});
@@ -47,7 +48,7 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/ai/chat'),
+        Uri.parse('${ApiConfig.baseUrl}/api/ai/chat'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "message": text,

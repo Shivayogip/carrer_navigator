@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/api_config.dart';
 
 class ResumeScoringScreen extends StatefulWidget {
   const ResumeScoringScreen({super.key});
@@ -30,7 +31,7 @@ class _ResumeScoringScreenState extends State<ResumeScoringScreen> {
     
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/user/data'),
+        Uri.parse('${ApiConfig.baseUrl}/api/user/data'),
         headers: {'Authorization': 'Bearer ${auth.token}'},
       );
       

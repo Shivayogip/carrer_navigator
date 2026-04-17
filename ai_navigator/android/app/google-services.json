@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "397856270364",
+    "project_id": "career-navigator-26eae",
+    "storage_bucket": "career-navigator-26eae.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:397856270364:android:2f0d8a479bf7af0a5217d9",
+        "android_client_info": {
+          "package_name": "com.example.career_navigator"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "397856270364-3bipv0tdbgi6niv1298ene10ie811c9a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.career_navigator",
+            "certificate_hash": "265a94bc90d350f9750e936e73e8353ffa91ca1e"
+          }
+        },
+        {
+          "client_id": "397856270364-fi8t8plifl90r06vq4kbrdipcmoeurp2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAVU1RXfIvfpybUxseK24NnNEx9oynL00"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "397856270364-fi8t8plifl90r06vq4kbrdipcmoeurp2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

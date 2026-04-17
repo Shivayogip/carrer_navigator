@@ -5,7 +5,7 @@ import 'resume_service.dart';
 
 class FileUploadService {
   static Future<bool> pickAndStoreResume(BuildContext context) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'txt'],
       withData: true,

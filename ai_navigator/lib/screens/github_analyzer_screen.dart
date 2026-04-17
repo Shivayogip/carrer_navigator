@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/api_config.dart';
 
 class GithubAnalyzerScreen extends StatefulWidget {
   const GithubAnalyzerScreen({super.key});
@@ -28,7 +29,7 @@ class _GithubAnalyzerScreenState extends State<GithubAnalyzerScreen> {
     
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/ai/chat'),
+        Uri.parse('${ApiConfig.baseUrl}/api/ai/chat'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "message": prompt,
