@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
-  // 🚀 UPDATE THIS after deploying your backend (e.g. to Render.com)
+  // 🚀 UPDATED: Points to your live Render backend
   static const String _prodBaseUrl = 'https://career-navigator-api.onrender.com'; 
 
   static String get baseUrl {
