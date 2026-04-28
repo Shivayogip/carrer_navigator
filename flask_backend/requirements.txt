@@ -9,3 +9,4 @@ supabase
 fpdf2
 gunicorn
 requests
+flask-mail
