@@ -249,7 +249,7 @@ class ResumeService extends ChangeNotifier {
       } else if (line.startsWith('* ') || line.startsWith('- ')) {
         textToDraw = "• ${line.substring(2)}";
         currentHeight = 18;
-      } else if (line[0:1].contains(RegExp(r'[0-9]')) && line.contains('.')) {
+      } else if (line.isNotEmpty && line.substring(0, 1).contains(RegExp(r'[0-9]')) && line.contains('.')) {
         textToDraw = line;
         currentHeight = 18;
       }

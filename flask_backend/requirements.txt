@@ -7,3 +7,5 @@ docx2txt
 werkzeug
 supabase
 fpdf2
+gunicorn
+requests
