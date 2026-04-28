@@ -6,3 +6,4 @@ PyPDF2
 docx2txt
 werkzeug
 supabase
+fpdf2

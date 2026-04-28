@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../services/auth_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/api_config.dart';
+import '../widgets/navbar.dart';
+import '../theme/app_theme.dart';
 
 class ResumeScoringScreen extends StatefulWidget {
   const ResumeScoringScreen({super.key});
@@ -53,75 +56,118 @@ class _ResumeScoringScreenState extends State<ResumeScoringScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("Resume Report Card")),
-      body: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
+      backgroundColor: AppTheme.darkBg,
+      body: Column(
+        children: [
+          const Navbar(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Overall System Rating", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                  const SizedBox(height: 40),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 250,
-                        height: 250,
-                        child: CircularProgressIndicator(
-                          value: _score / 100,
-                          strokeWidth: 20,
-                          backgroundColor: Colors.grey[200],
-                          color: _getScoreColor(_score),
-                        ),
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text("${_score.toInt()}%", style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: _getScoreColor(_score))),
-                          const Text("ATS Compatibility", style: TextStyle(color: Colors.black54)),
-                        ],
-                      )
-                    ],
-                  ),
+                  Text(
+                    "SYSTEM_RATING.REPORT",
+                    style: theme.textTheme.labelLarge,
+                  ).animate().fadeIn().slideX(),
+                  Text(
+                    "ATS Compatibility Score",
+                    style: theme.textTheme.displayMedium,
+                  ).animate().fadeIn(delay: 200.ms).slideX(),
                   const SizedBox(height: 60),
-                  if (_score == 0)
-                    const Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: Text("You haven't analyzed a resume yet! Head to Resume Intelligence to upload your PDF.", textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
-                    )
+                  
+                  if (_isLoading)
+                    const Center(child: Padding(padding: EdgeInsets.all(80.0), child: CircularProgressIndicator(color: AppTheme.primaryNeon)))
                   else
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                      child: Card(
-                        color: _getScoreColor(_score).withOpacity(0.1),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Text(
-                            _getScoreFeedback(_score),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 18, color: _getScoreColor(_score), fontWeight: FontWeight.bold),
-                          ),
-                        ),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SizedBox(
+                                width: 300,
+                                height: 300,
+                                child: CircularProgressIndicator(
+                                  value: _score / 100,
+                                  strokeWidth: 24,
+                                  backgroundColor: AppTheme.darkSurface,
+                                  color: _getScoreColor(_score),
+                                ),
+                              ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    "${_score.toInt()}%", 
+                                    style: TextStyle(fontSize: 80, fontWeight: FontWeight.bold, color: _getScoreColor(_score), fontFamily: 'JetBrainsMono')
+                                  ),
+                                  const Text("INTEGRITY_INDEX", style: TextStyle(color: AppTheme.textDim, fontFamily: 'JetBrainsMono', fontSize: 12)),
+                                ],
+                              )
+                            ],
+                          ).animate().scale(duration: 600.ms),
+                          const SizedBox(height: 60),
+                          
+                          if (_score == 0)
+                            Container(
+                              padding: const EdgeInsets.all(32),
+                              decoration: BoxDecoration(
+                                color: AppTheme.darkSurface,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: AppTheme.borderSubtle),
+                              ),
+                              child: const Text("SIGNAL_LOST: No resume telemetry detected. Upload file in Resume Intelligence to start scan.", textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textDim, height: 1.5)),
+                            ).animate().fadeIn(delay: 400.ms)
+                          else
+                            Container(
+                              padding: const EdgeInsets.all(40),
+                              width: 600,
+                              decoration: BoxDecoration(
+                                color: AppTheme.darkSurface,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: _getScoreColor(_score).withOpacity(0.5)),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    "DIAGNOSTIC_FEEDBACK",
+                                    style: TextStyle(color: _getScoreColor(_score), fontWeight: FontWeight.bold, fontFamily: 'JetBrainsMono', fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    _getScoreFeedback(_score),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.6),
+                                  ),
+                                ],
+                              ),
+                            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+                        ],
                       ),
-                    )
+                    ),
                 ],
               ),
+            ),
           ),
+        ],
+      ),
     );
   }
 
   Color _getScoreColor(double score) {
-    if (score >= 80) return Colors.green;
+    if (score >= 80) return AppTheme.primaryNeon;
     if (score >= 50) return Colors.orange;
-    if (score > 0) return Colors.red;
-    return Colors.grey;
+    if (score > 0) return const Color(0xFFF85149); // Error red
+    return AppTheme.borderSubtle;
   }
 
   String _getScoreFeedback(double score) {
-    if (score >= 80) return "Excellent! Your resume is highly likely to pass ATS filtering and impress recruiters.";
-    if (score >= 50) return "Good, but there's room for improvement. Consider adopting more industry buzzwords.";
-    return "Needs Review. We recommend using the AI Assistant to restructure your bullet points for higher impact.";
+    if (score >= 80) return "Excellent! Your resume telemetry is highly compatible with current ATS protocols. Expect high engagement from recruitment nodes.";
+    if (score >= 50) return "Acceptable, but optimization required. Consider injecting industry-specific keywords to improve searchability index.";
+    return "Critical Review Needed. System recommends restructuring high-level bullet points for better impact factor.";
   }
 }

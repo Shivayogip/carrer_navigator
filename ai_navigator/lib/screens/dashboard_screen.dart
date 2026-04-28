@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:ui';
 import '../services/auth_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -22,6 +25,7 @@ import 'progress_tracker_screen.dart';
 import '../widgets/ai_chat_panel.dart';
 import '../services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/resume_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -50,7 +54,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _loadNotificationPreference();
     _fetchTodayTasks();
     
-    // Cancel potential inactivity reminders on load (Mobile only)
     if (!kIsWeb) {
       NotificationService().cancelInactivityReminder();
     }
@@ -100,7 +103,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(value ? "10h Inactivity reminder enabled" : "Inactivity reminders disabled")),
+        SnackBar(content: Text(value ? "Monitoring inactive state..." : "Monitoring disabled")),
       );
     }
   }
@@ -124,8 +127,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         SnackBar(
           content: Text(
             value
-                ? "Daily reminders enabled for 10:00 AM"
-                : "Reminders disabled",
+                ? "Daily sync protocols active."
+                : "Sync protocols deactivated.",
           ),
         ),
       );
@@ -153,7 +156,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             _isLoading = false;
           });
 
-          // Check if resume is missing and we haven't shown the prompt this session
+          ResumeService().syncFromBackend(data);
+
           if (showResumePrompt && !_promptShown &&
               (_userData != null && (_userData!['resume_text'] == null ||
                   _userData!['resume_text'].toString().isEmpty))) {
@@ -164,11 +168,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           }
         }
       } else {
-        debugPrint("Dashboard: Fetch data failed with status ${response.statusCode}");
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      debugPrint("Dashboard: Error fetching data: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -195,37 +197,35 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       if (success && mounted) {
         _taskController.clear();
         _fetchTodayTasks();
-        _fetchUserData(showResumePrompt: false); // Refresh streak without re-prompting
+        _fetchUserData(showResumePrompt: false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Progress logged! 🔥")),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Failed to log task. Please try again later."),
-            backgroundColor: Colors.redAccent,
-          ),
+          const SnackBar(content: Text("Entry logged to database.")),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text("Error: $e")),
         );
       }
     }
   }
 
   void _showResumePrompt() {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        backgroundColor: theme.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: theme.dividerColor),
+        ),
+        title: Row(
           children: [
-            Icon(Icons.rocket_launch, color: Color(0xFF6366F1)),
-            SizedBox(width: 12),
-            Text("Ready to Start?"),
+            Icon(Icons.terminal, color: theme.colorScheme.primary),
+            const SizedBox(width: 12),
+            const Text("INITIALIZE_SYSTEM"),
           ],
         ),
         content: const Column(
@@ -233,34 +233,22 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Welcome to AI Career Navigator! To get personalized career paths, skill gap analysis, and interview prep, please upload your resume.",
+              "System requires resume data for profiling. Current status: DATA_MISSING.",
               style: TextStyle(fontSize: 16, height: 1.5),
-            ),
-            SizedBox(height: 12),
-            Text(
-              "It only takes a minute to get your first scoring report.",
-              style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Later"),
+            child: const Text("SKIP"),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               Navigator.push(context, fadeRoute(const ResumeIntelligence()));
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text("Upload Now"),
+            child: const Text("UPLOAD_DATA"),
           ),
         ],
       ),
@@ -271,561 +259,293 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
     final user = auth.user;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: const Navbar(),
-      body: Stack(
+      body: Column(
         children: [
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              "Welcome back, ${(user?.displayName != null && user!.displayName!.isNotEmpty) ? user.displayName : (user?.email ?? 'User')}!",
-                              style: const TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1F2937),
-                              ),
-                            ),
-                          ),
-                          if (user != null)
-                            GestureDetector(
-                              onTap: () => _taskFocusNode.requestFocus(),
-                              child: Tooltip(
-                                message: "Click to log today's progress",
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: user.currentStreak > 0 ? Colors.orange[50] : Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: user.currentStreak > 0 ? Colors.orange[200]! : Colors.grey[300]!),
-                                  ),
-                                  child: Row(
+          const Navbar(),
+          Expanded(
+            child: Stack(
+              children: [
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Icon(Icons.local_fire_department,
-                                          color: user.currentStreak > 0 ? Colors.orange : Colors.grey, size: 24),
-                                      const SizedBox(width: 4),
                                       Text(
-                                        user.currentStreak > 0 
-                                          ? "${user.currentStreak} Day Streak"
-                                          : "Start a Streak!",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: user.currentStreak > 0 ? Colors.orange : Colors.grey[600]),
-                                      ),
+                                        "SYSTEM.STATUS: ONLINE",
+                                        style: theme.textTheme.labelLarge,
+                                      ).animate().fadeIn().slideX(),
+                                      Text(
+                                        "Welcome, ${(user?.displayName != null && user!.displayName!.isNotEmpty) ? user.displayName : (user?.email ?? 'User')}",
+                                        style: theme.textTheme.displayMedium,
+                                      ).animate().fadeIn(delay: 200.ms).slideX(),
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Achievements Room
-                      if (user != null && user.badges.isNotEmpty) ...[
-                        const Text(
-                          "My Achievements",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black54,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 100,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: user.badges.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 16),
-                            itemBuilder: (context, index) {
-                              final badge = user.badges[index];
-                              return _buildBadgeItem(badge);
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                      ],
-
-                      // Stats Card or Resume Banner
-                      if (_userData != null &&
-                          _userData!['score'] != null &&
-                          _userData!['score'] > 0) ...[
-                        Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 4,
-                          shadowColor: Colors.black12,
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          "Current Resume Score",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.black54,
-                                          ),
-                                        ),
-                                        Text(
-                                          "${_userData!['score']}%",
-                                          style: const TextStyle(
-                                            fontSize: 40,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF6366F1),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Icon(
-                                      Icons.trending_up,
-                                      size: 64,
-                                      color: Colors.green.withOpacity(0.2),
-                                    ),
-                                  ],
-                                ),
-                                const Divider(height: 32),
-                                if (_userData!['skills'] != null &&
-                                    _userData!['skills']
-                                        .toString()
-                                        .isNotEmpty) ...[
-                                  const Text(
-                                    "Detected Key Skills",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: _buildSkillsList(
-                                      _userData!['skills'].toString(),
-                                    ),
-                                  ),
-                                ],
+                                if (user != null)
+                                  _buildStreakChip(user, theme).animate().scale(delay: 400.ms),
                               ],
                             ),
-                          ),
-                        ),
-                      ] else ...[
-                        _buildResumeBanner(),
-                      ],
-                      const SizedBox(height: 32),
+                            const SizedBox(height: 32),
 
-                      // Daily Progress Checklist
-                      Card(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        elevation: 0,
-                        color: Colors.white,
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text("Daily Progress Logger",
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              const Text(
-                                  "Log your achievements to maintain your streak!",
-                                  style: TextStyle(
-                                      color: Colors.black54, fontSize: 14)),
-                              const SizedBox(height: 20),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _taskController,
-                                      focusNode: _taskFocusNode,
-                                      decoration: InputDecoration(
-                                        hintText: "What did you learn today?",
-                                        filled: true,
-                                        fillColor: Colors.grey[100],
-                                        border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            borderSide: BorderSide.none),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 12),
-                                      ),
-                                      onSubmitted: (_) => _addNewTask(),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  IconButton.filled(
-                                    onPressed: _addNewTask,
-                                    icon: const Icon(Icons.add),
-                                    style: IconButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFF6366F1),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12))),
-                                  )
-                                ],
-                              ),
-                              if (_todayTasks.isNotEmpty) ...[
-                                const SizedBox(height: 20),
-                                const Text("Today's Accomplishments",
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black54)),
-                                const SizedBox(height: 12),
-                                ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _todayTasks.length,
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(height: 8),
+                            // Achievements
+                            if (user != null && user.badges.isNotEmpty) ...[
+                              Text("ACHIEVEMENTS.LOG", style: theme.textTheme.labelLarge),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 90,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: user.badges.length,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 16),
                                   itemBuilder: (context, index) {
-                                    final task = _todayTasks[index];
-                                    return Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                          color: Colors.green[50]
-                                              ?.withOpacity(0.5),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          border: Border.all(
-                                              color: Colors.green[100]!)),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.check_circle,
-                                              color: Colors.green, size: 20),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                              child: Text(
-                                                  task['task_desc'] ?? '',
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w500))),
-                                        ],
-                                      ),
-                                    );
+                                    return _buildBadgeItem(user.badges[index]);
                                   },
-                                )
-                              ]
+                                ),
+                              ).animate().fadeIn(delay: 500.ms),
+                              const SizedBox(height: 32),
                             ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
 
-                      // Notification Settings
-                      Card(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        elevation: 0,
-                        color: Colors.white,
-                        child: Column(
-                          children: [
-                            if (!kIsWeb) ...[
-                              SwitchListTile(
-                                title: const Text("Daily Skill Reminder",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16)),
-                                subtitle: const Text(
-                                    "Notification at 10:00 AM to stay on track."),
-                                secondary: Icon(Icons.notifications_active,
-                                    color: _notificationsEnabled
-                                        ? Colors.indigo
-                                        : Colors.grey),
-                                value: _notificationsEnabled,
-                                onChanged: _toggleNotifications,
-                              ),
-                              const Divider(height: 1),
-                              SwitchListTile(
-                                title: const Text("10h Inactivity Reminder",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16)),
-                                subtitle: const Text(
-                                    "Get a ping if you skip the app for 10 hours."),
-                                secondary: Icon(Icons.timer,
-                                    color: _inactivityReminderEnabled
-                                        ? Colors.indigo
-                                        : Colors.grey),
-                                value: _inactivityReminderEnabled,
-                                onChanged: _toggleInactivityReminder,
-                              ),
-                            ],
+                            // Score / Banner
+                            if (_userData != null && _userData!['score'] != null && _userData!['score'] > 0)
+                              _buildScoreCard(theme).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1)
+                            else
+                              _buildResumeBanner(theme).animate().fadeIn(delay: 600.ms),
+
+                            const SizedBox(height: 32),
+
+                            // Terminal Logger
+                            _buildTerminalLogger(theme).animate().fadeIn(delay: 700.ms),
+
+                            const SizedBox(height: 32),
+
+                            Text("MODULES.INIT", style: theme.textTheme.labelLarge),
+                            const SizedBox(height: 16),
+
+                            // Grid
+                            GridView.extent(
+                              maxCrossAxisExtent: 220,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 1.1,
+                              children: [
+                                _buildActionCard(context, "RESUME_ANALYSIS", Icons.document_scanner, theme.colorScheme.secondary, const ResumeIntelligence()),
+                                _buildActionCard(context, "CAREER_PATH", Icons.auto_graph, Colors.cyan, const CareerPathScreen()),
+                                _buildActionCard(context, "SKILL_GAP", Icons.analytics_outlined, Colors.orange, const SkillGapScreen()),
+                                _buildActionCard(context, "ROADMAP_GEN", Icons.map_outlined, Colors.purple, const RoadmapScreen()),
+                                _buildActionCard(context, "PROJ_IDEAS", Icons.lightbulb_outline, Colors.amber, const ProjectRecommendationScreen()),
+                                _buildActionCard(context, "REPORT_CARD", Icons.assessment_outlined, Colors.teal, const ResumeScoringScreen()),
+                                _buildActionCard(context, "INT_PREP", Icons.mic_none, Colors.redAccent, const InterviewPrepScreen()),
+                                _buildActionCard(context, "PROGRESS", Icons.track_changes, Colors.indigo, const ProgressTrackerScreen()),
+                                _buildActionCard(context, "GIT_STATS", Icons.code, theme.colorScheme.primary, const GithubAnalyzerScreen()),
+                              ].animate(interval: 50.ms).fadeIn().scale(),
+                            ),
+
+                            const SizedBox(height: 40),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 32),
-
-                      const Text(
-                        "AI Toolkit",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1F2937),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Toolbox Grid
-                      GridView.extent(
-                        maxCrossAxisExtent: 220,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 1.1,
-                        children: [
-                          _buildActionCard(
-                            context,
-                            "Resume Analysis",
-                            Icons.document_scanner,
-                            Colors.blue,
-                            const ResumeIntelligence(),
-                          ),
-                          _buildActionCard(
-                            context,
-                            "Career Path",
-                            Icons.auto_graph,
-                            Colors.green,
-                            const CareerPathScreen(),
-                          ),
-                          _buildActionCard(
-                            context,
-                            "Skill Gap",
-                            Icons.analytics,
-                            Colors.orange,
-                            const SkillGapScreen(),
-                          ),
-                          _buildActionCard(
-                            context,
-                            "Roadmap",
-                            Icons.map,
-                            Colors.indigo,
-                            const RoadmapScreen(),
-                          ),
-                          _buildActionCard(
-                            context,
-                            "Projects",
-                            Icons.lightbulb,
-                            Colors.amber,
-                            const ProjectRecommendationScreen(),
-                          ),
-                          _buildActionCard(
-                            context,
-                            "Report Card",
-                            Icons.score,
-                            Colors.teal,
-                            const ResumeScoringScreen(),
-                          ),
-                          _buildActionCard(
-                            context,
-                            "Interview Prep",
-                            Icons.mic,
-                            Colors.red,
-                            const InterviewPrepScreen(),
-                          ),
-                          _buildActionCard(
-                            context,
-                            "Progress",
-                            Icons.track_changes,
-                            Colors.cyan,
-                            const ProgressTrackerScreen(),
-                          ),
-                          _buildActionCard(
-                            context,
-                            "GitHub Stats",
-                            Icons.code,
-                            Colors.black87,
-                            const GithubAnalyzerScreen(),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 40),
-                    ],
+                if (_isChatOpen)
+                  Positioned(
+                    right: 24,
+                    bottom: 100,
+                    child: AiChatPanel(
+                      onClose: () => setState(() => _isChatOpen = false),
+                    ),
                   ),
-                ),
-          if (_isChatOpen)
-            Positioned(
-              right: 24,
-              bottom: 100,
-              child: AiChatPanel(
-                onClose: () => setState(() => _isChatOpen = false),
-              ),
+              ],
             ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => setState(() => _isChatOpen = !_isChatOpen),
-        backgroundColor: const Color(0xFF6366F1),
-        elevation: 4,
-        child: Icon(
-          _isChatOpen ? Icons.close : Icons.chat_bubble,
-          color: Colors.white,
+        child: Icon(_isChatOpen ? Icons.close : Icons.psychology),
+      ).animate().scale(delay: 1.seconds),
+    );
+  }
+
+  Widget _buildStreakChip(dynamic user, ThemeData theme) {
+    bool hasStreak = user.currentStreak > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: hasStreak ? Colors.orange.withOpacity(0.1) : theme.cardColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: hasStreak ? Colors.orange : theme.dividerColor),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.bolt, color: hasStreak ? Colors.orange : theme.disabledColor, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            "STREAK: ${user.currentStreak}",
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: hasStreak ? Colors.orange : theme.disabledColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreCard(ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("RESUME_STRENGTH", style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  Text(
+                    "${_userData!['score']}%",
+                    style: theme.textTheme.displayLarge?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontSize: 48,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              height: 80,
+              width: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2), width: 8),
+              ),
+              child: Center(
+                child: Icon(Icons.analytics_outlined, color: theme.colorScheme.primary, size: 40),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  List<Widget> _buildSkillsList(String skillsStr) {
-    if (skillsStr.length > 2 && skillsStr.startsWith('[')) {
-      try {
-        final List<dynamic> list = jsonDecode(skillsStr);
-        return list
-            .map(
-              (s) => Chip(
-                label: Text(s.toString(), style: const TextStyle(fontSize: 12)),
-                backgroundColor: Colors.blue[50],
-                side: BorderSide(color: Colors.blue[100]!),
-              ),
-            )
-            .toList();
-      } catch (_) {}
-    }
-    return skillsStr
-        .split(',')
-        .map(
-          (s) => Chip(
-            label: Text(s.trim(), style: const TextStyle(fontSize: 12)),
-            backgroundColor: Colors.blue[50],
-            side: BorderSide(color: Colors.blue[100]!),
-          ),
-        )
-        .toList();
-  }
-
-  Widget _buildResumeBanner() {
+  Widget _buildTerminalLogger(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6366F1).withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.dividerColor),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            ),
+            child: Row(
+              children: [
+                _dot(Colors.red),
+                _dot(Colors.amber),
+                _dot(Colors.green),
+                const SizedBox(width: 12),
+                Text("PROGRESS_LOGGER.SH", style: theme.textTheme.labelLarge?.copyWith(fontSize: 10)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Unlock Your AI Career Roadmap",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                ..._todayTasks.map((task) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    "> ${task['task_desc']}",
+                    style: GoogleFonts.jetBrainsMono(color: theme.colorScheme.secondary, fontSize: 13),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Upload your resume to get instant scoring, skill gap analysis, and personalized project recommendations.",
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    fadeRoute(const ResumeIntelligence()),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF6366F1),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+                )),
+                Row(
+                  children: [
+                    Text("\$ ", style: GoogleFonts.jetBrainsMono(color: theme.colorScheme.primary)),
+                    Expanded(
+                      child: TextField(
+                        controller: _taskController,
+                        focusNode: _taskFocusNode,
+                        style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 13),
+                        decoration: const InputDecoration(
+                          hintText: "log entry...",
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onSubmitted: (_) => _addNewTask(),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    "Get Started Now",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  ],
                 ),
               ],
             ),
           ),
-          if (!kIsWeb)
-            const Padding(
-              padding: EdgeInsets.only(left: 20),
-              child: Icon(Icons.rocket_launch, size: 80, color: Colors.white24),
-            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dot(Color color) => Container(
+    margin: const EdgeInsets.only(right: 6),
+    width: 10,
+    height: 10,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
+
+  Widget _buildResumeBanner(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("SYSTEM_INITIALIZATION_REQUIRED", style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          const Text("Please upload resume data to unlock AI diagnostic tools."),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => Navigator.push(context, fadeRoute(const ResumeIntelligence())),
+            child: const Text("EXEC_UPLOAD"),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildBadgeItem(String type) {
-    IconData icon;
-    String label;
-    Color color;
+    final theme = Theme.of(context);
+    IconData icon = Icons.terminal;
+    Color color = theme.colorScheme.primary;
 
-    switch (type) {
-      case 'welcome':
-        icon = Icons.stars;
-        label = "Welcome";
-        color = Colors.blue;
-        break;
-      case 'consistent':
-        icon = Icons.verified;
-        label = "Consistent";
-        color = Colors.orange;
-        break;
-      case 'explorer':
-        icon = Icons.explore;
-        label = "Explorer";
-        color = Colors.purple;
-        break;
-      case 'achiever':
-        icon = Icons.emoji_events;
-        label = "Achiever";
-        color = Colors.amber;
-        break;
-      default:
-        icon = Icons.military_tech;
-        label = "Achievement";
-        color = Colors.grey;
-    }
+    if (type.contains('welcome')) icon = Icons.power;
+    if (type.contains('consistent')) { icon = Icons.repeat; color = Colors.orange; }
+    if (type.contains('explorer')) { icon = Icons.search; color = Colors.cyan; }
 
     return Column(
       children: [
@@ -834,23 +554,17 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           decoration: BoxDecoration(
             color: color.withOpacity(0.1),
             shape: BoxShape.circle,
-            border: Border.all(color: color.withOpacity(0.3), width: 2),
+            border: Border.all(color: color.withOpacity(0.3)),
           ),
-          child: Icon(icon, color: color, size: 32),
+          child: Icon(icon, color: color, size: 24),
         ),
-        const SizedBox(height: 8),
-        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 4),
+        Text(type.toUpperCase(), style: theme.textTheme.labelLarge?.copyWith(fontSize: 8, color: color)),
       ],
     );
   }
 
-  Widget _buildActionCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    Widget screen,
-  ) {
+  Widget _buildActionCard(BuildContext context, String title, IconData icon, Color color, Widget screen) {
     return _AnimatedToolCard(
       title: title,
       icon: icon,
@@ -866,12 +580,7 @@ class _AnimatedToolCard extends StatefulWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _AnimatedToolCard({
-    required this.title,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
+  const _AnimatedToolCard({required this.title, required this.icon, required this.color, required this.onTap});
 
   @override
   State<_AnimatedToolCard> createState() => _AnimatedToolCardState();
@@ -882,6 +591,7 @@ class _AnimatedToolCardState extends State<_AnimatedToolCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
@@ -889,58 +599,29 @@ class _AnimatedToolCardState extends State<_AnimatedToolCard> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          transform: Matrix4.translationValues(0, _isHovering ? -6 : 0, 0)
-            ..scale(_isHovering ? 1.02 : 1.0),
+          duration: 200.ms,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: _isHovering ? theme.colorScheme.surface : theme.scaffoldBackgroundColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _isHovering ? widget.color : theme.dividerColor),
             boxShadow: [
-              if (_isHovering)
-                BoxShadow(
-                  color: widget.color.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                )
-              else
-                const BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
+              if (_isHovering) BoxShadow(color: widget.color.withOpacity(0.1), blurRadius: 10),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: EdgeInsets.all(_isHovering ? 16 : 12),
-                  decoration: BoxDecoration(
-                    color: widget.color.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    widget.icon,
-                    size: _isHovering ? 36 : 32,
-                    color: widget.color,
-                  ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(widget.icon, size: 32, color: _isHovering ? widget.color : theme.disabledColor),
+              const SizedBox(height: 12),
+              Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 10,
+                  color: _isHovering ? widget.color : theme.disabledColor,
                 ),
-                const Spacer(),
-                Text(
-                  widget.title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: _isHovering ? widget.color : const Color(0xFF374151),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

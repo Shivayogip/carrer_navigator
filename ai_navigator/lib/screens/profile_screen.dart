@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../services/auth_service.dart';
 import '../widgets/navbar.dart';
+import '../theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,7 +18,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final _formKey = GlobalKey<FormState>();
   
-  // Controllers for editing
   late TextEditingController _nameController;
   late TextEditingController _mobileController;
   late TextEditingController _courseController;
@@ -91,39 +92,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text("Change Password"),
+          backgroundColor: AppTheme.darkSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: const BorderSide(color: AppTheme.borderSubtle),
+          ),
+          title: Text("CHANGE_ACCESS_TOKEN", style: Theme.of(context).textTheme.titleLarge),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: currentPasswordController,
                 obscureText: obscureCurrent,
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: "Current Password",
+                  labelStyle: const TextStyle(color: AppTheme.textDim),
                   suffixIcon: IconButton(
-                    icon: Icon(obscureCurrent ? Icons.visibility_off : Icons.visibility, size: 20),
+                    icon: Icon(obscureCurrent ? Icons.visibility_off : Icons.visibility, size: 20, color: AppTheme.textDim),
                     onPressed: () => setDialogState(() => obscureCurrent = !obscureCurrent),
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
               TextField(
                 controller: newPasswordController,
                 obscureText: obscureNew,
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: "New Password",
+                  labelStyle: const TextStyle(color: AppTheme.textDim),
                   suffixIcon: IconButton(
-                    icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility, size: 20),
+                    icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility, size: 20, color: AppTheme.textDim),
                     onPressed: () => setDialogState(() => obscureNew = !obscureNew),
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
               TextField(
                 controller: confirmPasswordController,
                 obscureText: obscureConfirm,
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: "Confirm New Password",
+                  labelStyle: const TextStyle(color: AppTheme.textDim),
                   suffixIcon: IconButton(
-                    icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility, size: 20),
+                    icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility, size: 20, color: AppTheme.textDim),
                     onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
                   ),
                 ),
@@ -133,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+              child: const Text("CANCEL", style: TextStyle(color: AppTheme.textDim)),
             ),
             ElevatedButton(
               onPressed: isUpdating ? null : () async {
@@ -165,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }
                 }
               },
-              child: isUpdating ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Update"),
+              child: isUpdating ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text("UPDATE"),
             ),
           ],
         ),
@@ -176,131 +190,127 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<AuthService>(context).user;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: const Navbar(),
-      backgroundColor: const Color(0xFFF9FAFB),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Your Profile",
-                          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
-                        ),
-                        Text(
-                          "Manage your personal and educational details",
-                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                    if (!_isEditing)
-                      ElevatedButton.icon(
-                        onPressed: () => setState(() => _isEditing = true),
-                        icon: const Icon(Icons.edit),
-                        label: const Text("Edit Profile"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-
-                Form(
-                  key: _formKey,
+      backgroundColor: AppTheme.darkBg,
+      body: Column(
+        children: [
+          const Navbar(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 900),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Basic Info Card
-                      _buildInfoCard(
-                        "Basic Information",
-                        [
-                          _buildDetailRow("Full Name", user?.displayName ?? "Not set", _nameController, _isEditing),
-                          _buildDetailRow("Email Address", user?.email ?? "Not set", null, false), // Email not editable
-                          _buildDetailRow("Mobile Number", user?.mobile ?? "Not set", _mobileController, _isEditing),
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "USER_PROFILE.CFG",
+                                  style: theme.textTheme.labelLarge,
+                                ).animate().fadeIn().slideX(),
+                                Text(
+                                  "Credentials & Academic Data",
+                                  style: theme.textTheme.displayMedium,
+                                ).animate().fadeIn(delay: 200.ms).slideX(),
+                              ],
+                            ),
+                          ),
+                          if (!_isEditing)
+                            ElevatedButton.icon(
+                              onPressed: () => setState(() => _isEditing = true),
+                              icon: const Icon(Icons.edit_note, size: 20),
+                              label: const Text("EDIT_CONFIG"),
+                            ).animate().scale(delay: 400.ms),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 40),
 
-                      // Educational Info Card
-                      _buildInfoCard(
-                        "Educational Information",
-                        [
-                          _buildDetailRow("Course", user?.course ?? "Not set", _courseController, _isEditing),
-                          _buildDetailRow("Branch", user?.branch ?? "Not set", _branchController, _isEditing),
-                          _buildDropdownRow("Year of Study", user?.year ?? "Not set", _isEditing),
-                          _buildDetailRow("Field of Interest", user?.interestField ?? "Not set", _interestController, _isEditing),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Actions
-                      if (_isEditing)
-                        Row(
+                      Form(
+                        key: _formKey,
+                        child: Column(
                           children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => setState(() => _isEditing = false),
+                            _buildInfoCard(
+                              "IDENTITY_PROTOCOL",
+                              [
+                                _buildDetailRow("NAME", user?.displayName ?? "Not set", _nameController, _isEditing),
+                                _buildDetailRow("EMAIL", user?.email ?? "Not set", null, false),
+                                _buildDetailRow("MOBILE", user?.mobile ?? "Not set", _mobileController, _isEditing),
+                              ],
+                            ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
+                            const SizedBox(height: 32),
+                            _buildInfoCard(
+                              "ACADEMIC_SCHEMA",
+                              [
+                                _buildDetailRow("COURSE", user?.course ?? "Not set", _courseController, _isEditing),
+                                _buildDetailRow("BRANCH", user?.branch ?? "Not set", _branchController, _isEditing),
+                                _buildDropdownRow("YEAR_OF_STUDY", user?.year ?? "Not set", _isEditing),
+                                _buildDetailRow("INTEREST_FIELD", user?.interestField ?? "Not set", _interestController, _isEditing),
+                              ],
+                            ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1),
+                            const SizedBox(height: 40),
+
+                            if (_isEditing)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () => setState(() => _isEditing = false),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 20),
+                                        side: const BorderSide(color: AppTheme.borderSubtle),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                      ),
+                                      child: const Text("CANCEL", style: TextStyle(color: AppTheme.textDim)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 20),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: _isLoading ? null : _saveProfile,
+                                      style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 20),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                      ),
+                                      child: _isLoading 
+                                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                        : const Text("SAVE_CHANGES"),
+                                    ),
+                                  ),
+                                ],
+                              ).animate().fadeIn()
+                            else
+                              OutlinedButton.icon(
+                                onPressed: _showPasswordDialog,
+                                icon: const Icon(Icons.lock_open, size: 18),
+                                label: const Text("RESET_ACCESS_TOKEN"),
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  padding: const EdgeInsets.symmetric(vertical: 20),
+                                  minimumSize: const Size(double.infinity, 50),
+                                  side: const BorderSide(color: AppTheme.borderSubtle),
+                                  foregroundColor: AppTheme.accentPurple,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                 ),
-                                child: const Text("Cancel"),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _saveProfile,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF6366F1),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                                child: _isLoading 
-                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Text("Save Changes"),
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: _showPasswordDialog,
-                              icon: const Icon(Icons.lock_outline),
-                              label: const Text("Change Password"),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                            ),
+                              ).animate().fadeIn(delay: 700.ms),
                           ],
                         ),
+                      ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -308,19 +318,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildInfoCard(String title, List<Widget> children) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 4)),
-        ],
+        color: AppTheme.darkSurface,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppTheme.borderSubtle, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF374151))),
-          const SizedBox(height: 24),
+          Row(
+            children: [
+              const Icon(Icons.terminal, size: 18, color: AppTheme.primaryNeon),
+              const SizedBox(width: 12),
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+          const Divider(height: 48),
           ...children,
         ],
       ),
@@ -328,54 +342,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildDetailRow(String label, String value, TextEditingController? controller, bool editing) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          Text(label, style: theme.textTheme.labelLarge?.copyWith(fontSize: 10, color: AppTheme.textDim)),
+          const SizedBox(height: 12),
           if (editing && controller != null)
             TextFormField(
               controller: controller,
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2)),
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               validator: (v) => v == null || v.isEmpty ? "Required" : null,
             )
           else
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppTheme.darkBg.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+                border: Border.all(color: AppTheme.borderSubtle.withOpacity(0.5)),
+              ),
+              child: Text(value, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildDropdownRow(String label, String value, bool editing) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          Text(label, style: theme.textTheme.labelLarge?.copyWith(fontSize: 10, color: AppTheme.textDim)),
+          const SizedBox(height: 12),
           if (editing)
             DropdownButtonFormField<String>(
               value: _selectedYear,
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+              dropdownColor: AppTheme.darkSurface,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               items: _years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
               onChanged: (v) => setState(() => _selectedYear = v),
               validator: (v) => v == null ? "Required" : null,
             )
           else
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppTheme.darkBg.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+                border: Border.all(color: AppTheme.borderSubtle.withOpacity(0.5)),
+              ),
+              child: Text(value, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
+            ),
         ],
       ),
     );
   }
 }
+
+

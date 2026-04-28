@@ -8,6 +8,9 @@ import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'services/resume_service.dart';
+import 'theme/app_theme.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +45,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => ResumeService()),
       ],
       child: MyApp(onboardingCompleted: onboardingCompleted),
     ),
@@ -57,14 +61,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AI Career Navigator',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
-          primary: const Color(0xFF6366F1),
-          secondary: const Color(0xFF10B981),
-        ),
-      ),
+      theme: AppTheme.darkTheme,
       home: _getInitialScreen(),
     );
   }

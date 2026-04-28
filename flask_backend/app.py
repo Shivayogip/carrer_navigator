@@ -3,9 +3,12 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_mail import Mail, Message
 from dotenv import load_dotenv
-from ai_service import analyze_resume, chat_with_ai
+from ai_service import analyze_resume, chat_with_ai, analyze_github_profile
 from parser import extract_text
+import requests
 import db
+import pdf_generator
+import json
 
 load_dotenv()
 
@@ -50,6 +53,40 @@ def upload_resume():
         
         # AI Analysis using Gemini
         analysis = analyze_resume(text)
+        analysis['resume_text'] = text
+        
+        # PROACTIVE SAVE: If token is provided, save resume text and skills immediately
+        try:
+            token = request.headers.get('Authorization', '').replace('Bearer ', '')
+            user_id = db.get_user_from_token(token)
+            if user_id:
+                # Save extracted text and skills
+                db.save_user_data(
+                    user_id, 
+                    resume_text=text, 
+                    skills=json.dumps(analysis.get('skills', [])),
+                    score=analysis.get('resume_score', 0)
+                )
+                print(f"Auto-saved resume for user {user_id}")
+        except Exception as se:
+            print(f"Auto-save failed: {se}")
+
+        # Generate Analysis Report PDF (Already logic for this, keep it)
+        try:
+             # Construct a nice markdown for the report
+             report_md = f"# Resume Analysis Report\n\n"
+             report_md += f"## Score: {analysis.get('resume_score', 0)}/100\n\n"
+             report_md += f"## Key Skills\n" + "\n".join([f"* {s}" for s in analysis.get('skills', [])]) + "\n\n"
+             report_md += f"## Suggestions\n" + "\n".join([f"* {s}" for s in analysis.get('suggestions', [])]) + "\n\n"
+             
+             pdf_bytes = pdf_generator.generate_report_pdf("Resume Analysis Report", report_md)
+             
+             # If user is logged in, we'll save it. 
+             # But this endpoint is often called BEFORE login or without a token.
+             # The save_data endpoint will handle persistent storage.
+             # For now, we just indicate it's ready.
+        except Exception as pe:
+             print(f"Error generating analysis PDF: {pe}")
         
         return jsonify(analysis)
     except Exception as e:
@@ -66,7 +103,7 @@ def contact_form():
         if not user_email or not message_content:
             return jsonify({"error": "Email and message are required"}), 400
             
-        target_email = os.getenv('CONTACT_TARGET_EMAIL', 'shivayogi2006@gmail.com')
+        target_email = os.getenv('CONTACT_TARGET_EMAIL', 'careernavigator28@gmail.com')
         
         msg = Message(
             subject=f"New Contact Form Submission from {user_email}",
@@ -145,12 +182,68 @@ def user_save_data():
         return jsonify({"error": "Unauthorized"}), 401
     
     data = request.get_json()
-    resume_text = data.get('resume_text', '')
-    skills = data.get('skills', '')
-    role = data.get('role', '')
-    score = data.get('score', 0)
-    db.save_user_data(user_id, resume_text, skills, role, score)
-    return jsonify({"status": "success"})
+    resume_text = data.get('resume_text')
+    skills = data.get('skills')
+    role = data.get('role')
+    score = data.get('score')
+    target_company = data.get('target_company')
+    career_path = data.get('career_path')
+    career_roadmap = data.get('career_roadmap')
+    missing_skills = data.get('missing_skills')
+    project_recommendations = data.get('project_recommendations')
+    
+    # Persist data
+    db.save_user_data(
+        user_id, resume_text, skills, role, score,
+        target_company=target_company,
+        career_path=career_path,
+        career_roadmap=career_roadmap,
+        missing_skills=missing_skills,
+        project_recommendations=project_recommendations
+    )
+    
+    # PDF Generation for reports (Async-like logic or just sequential for now)
+    pdf_urls = {}
+    try:
+        if career_path:
+            pdf_bytes = pdf_generator.generate_report_pdf("Career Path Analysis", career_path)
+            url = db.upload_pdf_to_storage(user_id, "career_path", pdf_bytes)
+            if url: pdf_urls["career_path_url"] = url
+            
+        if career_roadmap:
+            # If it's a list (structured), we need to handle it or assume it's markdown
+            # Based on ResumeService.dart, it can be either.
+            content = career_roadmap
+            if isinstance(career_roadmap, list):
+                content = "## Career Roadmap\n\n" + "\n".join([f"### Step {i+1}: {s.get('goal')} ({s.get('duration')})" for i, s in enumerate(career_roadmap)])
+            
+            pdf_bytes = pdf_generator.generate_report_pdf("Career Roadmap", content)
+            url = db.upload_pdf_to_storage(user_id, "career_roadmap", pdf_bytes)
+            if url: pdf_urls["career_roadmap_url"] = url
+            
+        if project_recommendations:
+            pdf_bytes = pdf_generator.generate_report_pdf("Project Recommendations", project_recommendations)
+            url = db.upload_pdf_to_storage(user_id, "projects", pdf_bytes)
+            if url: pdf_urls["project_recommendations_url"] = url
+            
+        # Update DB with URLs
+        if pdf_urls:
+            db.save_user_data(user_id, **pdf_urls)
+            
+    except Exception as pe:
+        import traceback
+        traceback.print_exc()
+        print(f"Error in automatic PDF generation: {pe}")
+
+    return jsonify({
+        "status": "success", 
+        "urls": pdf_urls,
+        "resume_analysis_url": pdf_urls.get('resume_analysis_url'),
+        "career_path_url": pdf_urls.get('career_path_url'),
+        "career_roadmap_url": pdf_urls.get('career_roadmap_url'),
+        "project_recommendations_url": pdf_urls.get('project_recommendations_url'),
+        "resume_builder_url": pdf_urls.get('resume_builder_url')
+    })
 
 @app.route('/api/user/data', methods=['GET'], strict_slashes=False)
 def get_user_data():
@@ -218,6 +311,82 @@ def update_password():
     if success:
         return jsonify({"status": "success", "message": "Password updated successfully"})
     return jsonify({"error": error}), 400
+
+@app.route('/api/github/analyze/<username>', methods=['GET'], strict_slashes=False)
+def analyze_github(username):
+    try:
+        target_role = request.args.get('role', 'Full Stack Developer')
+        print(f"Analyzing GitHub for: {username} (Target: {target_role})")
+        
+        # 1. Fetch Repositories
+        repos_url = f"https://api.github.com/users/{username}/repos?sort=updated&per_page=15"
+        repos_response = requests.get(repos_url)
+        if repos_response.status_code != 200:
+            return jsonify({"error": f"Failed to fetch GitHub repos: {repos_response.text}"}), repos_response.status_code
+        repos = repos_response.json()
+        
+        # 2. Fetch Events (Activity)
+        events_url = f"https://api.github.com/users/{username}/events?per_page=20"
+        events_response = requests.get(events_url)
+        events = events_response.json() if events_response.status_code == 200 else []
+        
+        # 3. AI Analysis
+        analysis = analyze_github_profile(username, repos, events, target_role)
+        return jsonify({"response": analysis})
+        
+    except Exception as e:
+        print(f"GitHub endpoint error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/pdf/generate', methods=['POST'], strict_slashes=False)
+def generate_pdf_direct():
+    try:
+        data = request.get_json()
+        title = data.get('title', 'AI Career Report')
+        content = data.get('content', '')
+        
+        print(f"Direct PDF generation request: {title}")
+        pdf_out = pdf_generator.generate_report_pdf(title, content)
+        
+        # Handle string output (legacy fpdf) vs bytes (fpdf2)
+        if isinstance(pdf_out, str):
+            pdf_bytes = pdf_out.encode('latin-1')
+        else:
+            pdf_bytes = bytes(pdf_out)
+            
+        from flask import make_response
+        response = make_response(pdf_bytes)
+        response.headers.set('Content-Type', 'application/pdf')
+        response.headers.set('Content-Disposition', 'attachment', filename=f"{title.replace(' ', '_')}.pdf")
+        return response
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Direct PDF generation error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/resume/export', methods=['POST'], strict_slashes=False)
+def export_resume_direct():
+    try:
+        data = request.get_json()
+        print(f"Direct Resume Export request for: {data.get('name')}")
+        pdf_out = pdf_generator.generate_resume_pdf(data)
+        
+        if isinstance(pdf_out, str):
+            pdf_bytes = pdf_out.encode('latin-1')
+        else:
+            pdf_bytes = bytes(pdf_out)
+            
+        from flask import make_response
+        response = make_response(pdf_bytes)
+        response.headers.set('Content-Type', 'application/pdf')
+        response.headers.set('Content-Disposition', 'attachment', filename="resume.pdf")
+        return response
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Direct Resume export error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))

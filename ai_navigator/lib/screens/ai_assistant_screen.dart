@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../services/api_config.dart';
+import '../theme/app_theme.dart';
+import '../widgets/navbar.dart';
 
 class AiAssistantScreen extends StatefulWidget {
   const AiAssistantScreen({super.key});
@@ -14,7 +17,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   final TextEditingController controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<Map<String, String>> messages = [
-    {"role": "ai", "text": "I am Mark , How can i help you?"}
+    {"role": "ai", "text": "I am Mark, your AI Career Guide. System initialization complete. How can I assist your career optimization today?"}
   ];
   bool _isLoading = false;
 
@@ -42,22 +45,21 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     _scrollToBottom();
 
     try {
-      // Exclude the current message and the dummy greeting from the history sent to the API
       final historyList = messages
           .sublist(0, messages.length - 1)
-          .where((m) => m["text"] != "I am Mark , How can i help you?")
+          .where((m) => !m["text"]!.contains("I am Mark"))
           .map((m) => {
-            "role": m["role"] == "user" ? "user" : "model",
-            "parts": [{"text": m["text"]}]
-          }).toList();
+                "role": m["role"] == "user" ? "user" : "model",
+                "parts": [
+                  {"text": m["text"]}
+                ]
+              })
+          .toList();
 
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/api/ai/chat'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "message": text,
-          "history": historyList
-        }),
+        body: jsonEncode({"message": text, "history": historyList}),
       );
 
       if (response.statusCode == 200) {
@@ -66,10 +68,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           messages.add({"role": "ai", "text": data["response"]});
         });
       } else {
-        String errorMsg = "Error: Could not get response from AI.";
+        String errorMsg = "ERROR: Connection to AI protocol failed.";
         try {
-           final data = jsonDecode(response.body);
-           if (data["error"] != null) errorMsg = data["error"];
+          final data = jsonDecode(response.body);
+          if (data["error"] != null) errorMsg = "ERROR: ${data["error"]}";
         } catch (_) {}
         setState(() {
           messages.add({"role": "ai", "text": errorMsg});
@@ -77,7 +79,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       }
     } catch (e) {
       setState(() {
-        messages.add({"role": "ai", "text": "Network error. Make sure backend is running."});
+        messages.add({"role": "ai", "text": "CRITICAL_ERROR: Network connection failed. Check backend status."});
       });
     } finally {
       setState(() {
@@ -89,109 +91,147 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("AI Career Assistant", style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF6366F1),
-        elevation: 0,
-      ),
+      backgroundColor: AppTheme.darkBg,
       body: Column(
         children: [
+          const Navbar(),
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == messages.length) {
-                  return const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
-                }
-                
-                final msg = messages[index];
-                bool isUser = msg["role"] == "user";
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "AI_ASSISTANT.SH",
+                        style: theme.textTheme.labelLarge,
+                      ).animate().fadeIn().slideX(),
+                      Text(
+                        "Interactive Career Logic",
+                        style: theme.textTheme.displayMedium,
+                      ).animate().fadeIn(delay: 200.ms).slideX(),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    itemCount: messages.length + (_isLoading ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == messages.length) {
+                        return const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryNeon),
+                          ),
+                        ).animate().fadeIn();
+                      }
 
-                return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    padding: const EdgeInsets.all(16),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
-                    decoration: BoxDecoration(
-                      color: isUser ? const Color(0xFF6366F1) : Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
-                        bottomLeft: Radius.circular(isUser ? 16 : 0),
-                        bottomRight: Radius.circular(isUser ? 0 : 16),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 5,
-                          offset: const Offset(0, 2),
+                      final msg = messages[index];
+                      bool isUser = msg["role"] == "user";
+
+                      return Align(
+                        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.all(20),
+                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                          decoration: BoxDecoration(
+                            color: isUser ? AppTheme.secondaryBlue.withOpacity(0.05) : AppTheme.darkSurface,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: isUser ? AppTheme.secondaryBlue.withOpacity(0.3) : AppTheme.borderSubtle,
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isUser ? Icons.person_outline : Icons.psychology_outlined,
+                                    size: 14,
+                                    color: isUser ? AppTheme.secondaryBlue : AppTheme.primaryNeon,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    isUser ? "USER_LOG" : "MARK_AI_PROMPT",
+                                    style: theme.textTheme.labelLarge?.copyWith(
+                                      fontSize: 10,
+                                      color: isUser ? AppTheme.secondaryBlue : AppTheme.primaryNeon,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                msg["text"]!,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  height: 1.6,
+                                  color: isUser ? Colors.white : AppTheme.textMain,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.darkSurface.withOpacity(0.8),
+                    border: const Border(top: BorderSide(color: AppTheme.borderSubtle)),
+                  ),
+                  child: SafeArea(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: controller,
+                            style: theme.textTheme.bodyLarge,
+                            decoration: InputDecoration(
+                              hintText: "Enter query or command...",
+                              hintStyle: TextStyle(color: AppTheme.textDim.withOpacity(0.3)),
+                              filled: true,
+                              fillColor: AppTheme.darkBg,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: const BorderSide(color: AppTheme.borderSubtle),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            ),
+                            onSubmitted: (_) => sendMessage(),
+                          ),
                         ),
+                        const SizedBox(width: 16),
+                        Container(
+                          height: 56,
+                          width: 56,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryNeon.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: AppTheme.primaryNeon.withOpacity(0.5)),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.send_rounded, color: AppTheme.primaryNeon, size: 24),
+                            onPressed: sendMessage,
+                          ),
+                        ).animate().scale(),
                       ],
                     ),
-                    child: Text(
-                      msg["text"]!,
-                      style: TextStyle(
-                        color: isUser ? Colors.white : Colors.black87,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                    ),
                   ),
-                );
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
+                )
               ],
-            ),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      decoration: InputDecoration(
-                        hintText: "Ask about career, skills, or projects...",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      ),
-                      onSubmitted: (_) => sendMessage(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  CircleAvatar(
-                    backgroundColor: const Color(0xFF6366F1),
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                      onPressed: sendMessage,
-                    ),
-                  )
-                ],
-              ),
             ),
           )
         ],

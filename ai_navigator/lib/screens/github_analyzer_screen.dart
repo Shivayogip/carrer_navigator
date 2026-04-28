@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../services/api_config.dart';
+import '../services/resume_service.dart';
+import '../widgets/navbar.dart';
+import '../theme/app_theme.dart';
 
 class GithubAnalyzerScreen extends StatefulWidget {
   const GithubAnalyzerScreen({super.key});
@@ -25,26 +29,22 @@ class _GithubAnalyzerScreenState extends State<GithubAnalyzerScreen> {
       _analysisMarkdown = null;
     });
     
-    final prompt = "I am a developer with the GitHub username: '$username'. Write a fun, creative, but professional 3-paragraph hypothetical assessment of what kind of open-source developer I am, what my code style says about me, and what top 3 repositories I likely have, purely based on analyzing the 'vibe' of my username. Format as Markdown.";
+    final targetRole = ResumeService().selectedRole ?? "Full Stack Developer";
     
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/api/ai/chat'),
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/api/github/analyze/$username?role=$targetRole'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "message": prompt,
-          "history": []
-        }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (mounted) setState(() => _analysisMarkdown = data['response']);
       } else {
-        if (mounted) setState(() => _analysisMarkdown = "Error fetching analysis.");
+        if (mounted) setState(() => _analysisMarkdown = "ERROR_RECOVERY: Could not locate GitHub node or fetch telemetry.");
       }
     } catch (e) {
-      if (mounted) setState(() => _analysisMarkdown = "Error: $e");
+      if (mounted) setState(() => _analysisMarkdown = "CONNECTIVITY_FAILURE: Secure stream interrupted.");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -52,66 +52,98 @@ class _GithubAnalyzerScreenState extends State<GithubAnalyzerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("GitHub Analyzer"),
-        backgroundColor: Colors.black87,
-        foregroundColor: Colors.white,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            const Icon(Icons.code, size: 80, color: Colors.black87),
-            const SizedBox(height: 16),
-            const Text(
-              "Discover your Open-Source Identity",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Enter your GitHub username and let our AI analyze your vibe and generate a hypothetical repository profile!",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black54),
-            ),
-            const SizedBox(height: 32),
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(
-                labelText: "GitHub Username",
-                prefixIcon: const Icon(Icons.person),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: AppTheme.darkBg,
+      body: Column(
+        children: [
+          const Navbar(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "GITHUB_ANALYZER.EXE",
+                    style: theme.textTheme.labelLarge,
+                  ).animate().fadeIn().slideX(),
+                  Text(
+                    "Source Code Impact Analysis",
+                    style: theme.textTheme.displayMedium,
+                  ).animate().fadeIn(delay: 200.ms).slideX(),
+                  const SizedBox(height: 40),
+
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: AppTheme.darkSurface,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppTheme.borderSubtle),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.code_off_outlined, size: 64, color: AppTheme.primaryNeon),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "Enter GitHub username to start professional diagnostics on activity streaks and technical value-add.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppTheme.textDim, height: 1.5),
+                        ),
+                        const SizedBox(height: 40),
+                        TextField(
+                          controller: _usernameController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+                            labelText: "GITHUB_USERNAME",
+                            prefixIcon: Icon(Icons.person_outline, size: 18),
+                          ),
+                          onSubmitted: (_) => _analyzeGithub(),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _analyzeGithub,
+                            child: _isLoading 
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2,))
+                                : const Text("EXECUTE_DEEP_SCAN"),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+
+                  if (_analysisMarkdown != null) ...[
+                    const SizedBox(height: 32),
+                    Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: AppTheme.darkSurface,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: AppTheme.borderSubtle),
+                        ),
+                        child: MarkdownBody(
+                          data: _analysisMarkdown!,
+                          styleSheet: MarkdownStyleSheet(
+                            p: theme.textTheme.bodyMedium?.copyWith(height: 1.6, color: AppTheme.textMain),
+                            h1: theme.textTheme.titleLarge?.copyWith(color: AppTheme.primaryNeon),
+                            h2: theme.textTheme.titleLarge?.copyWith(color: AppTheme.secondaryBlue, fontSize: 18),
+                            h3: theme.textTheme.titleLarge?.copyWith(color: AppTheme.accentPurple, fontSize: 16),
+                            code: const TextStyle(backgroundColor: AppTheme.darkBg, color: AppTheme.secondaryBlue, fontFamily: 'JetBrainsMono'),
+                            listBullet: const TextStyle(color: AppTheme.primaryNeon),
+                          ),
+                        )
+                    ).animate().fadeIn().slideY(begin: 0.05),
+                  ],
+                ],
               ),
-              onSubmitted: (_) => _analyzeGithub(),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.black87, foregroundColor: Colors.white),
-                onPressed: _isLoading ? null : _analyzeGithub,
-                child: _isLoading 
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Analyze Vibe"),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Expanded(
-              child: _analysisMarkdown != null 
-                  ? Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!)
-                      ),
-                      child: Markdown(data: _analysisMarkdown!)
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

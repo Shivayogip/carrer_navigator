@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../services/resume_service.dart';
 import '../widgets/navbar.dart';
 import '../services/api_config.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 
 class CareerPathScreen extends StatefulWidget {
   const CareerPathScreen({super.key});
@@ -26,7 +30,9 @@ class _CareerPathScreenState extends State<CareerPathScreen> {
     _roleController.text = ResumeService().selectedRole ?? "";
     _companyController.text = ResumeService().selectedCompany ?? "";
     
-    if (ResumeService().extractedSkills.isNotEmpty) {
+    if (ResumeService().careerPathMarkdown != null) {
+      _recommendationsMarkdown = ResumeService().careerPathMarkdown;
+    } else if (ResumeService().extractedSkills.isNotEmpty) {
       _generateRecommendations();
     }
   }
@@ -35,7 +41,7 @@ class _CareerPathScreenState extends State<CareerPathScreen> {
     setState(() => _isLoadingRecommendations = true);
     
     final skills = ResumeService().extractedSkills;
-    final prompt = "I have the following skills parsed from my resume: ${skills.join(', ')}. Please recommend 3 optimal career titles for me. Explain why they fit my skills. Format this purely in beautifully structured Markdown.";
+    final prompt = "I have the following skills parsed from my resume: ${skills.join(', ')}. Please recommend 3 optimal career titles for me. Explain why they fit my skills. Format this purely in beautifully structured Markdown for a developer dashboard.";
 
     try {
       final response = await http.post(
@@ -46,14 +52,39 @@ class _CareerPathScreenState extends State<CareerPathScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (mounted) setState(() => _recommendationsMarkdown = data['response']);
+        if (mounted) {
+          setState(() => _recommendationsMarkdown = data['response']);
+          ResumeService().careerPathMarkdown = data['response'];
+        }
       } else {
-        if (mounted) setState(() => _recommendationsMarkdown = "Error fetching recommendations.");
+        final errorMsg = jsonDecode(response.body)['error'] ?? "Error ${response.statusCode}";
+        if (mounted) setState(() => _recommendationsMarkdown = "ERROR_RECOVERY: Could not fetch career logic. $errorMsg");
       }
     } catch (e) {
-      if (mounted) setState(() => _recommendationsMarkdown = "Error: $e");
+      if (mounted) setState(() => _recommendationsMarkdown = "CRITICAL_FAILURE: Network interruption. $e");
     } finally {
       if (mounted) setState(() => _isLoadingRecommendations = false);
+    }
+  }
+
+  Future<void> _downloadPdf() async {
+    final rs = ResumeService();
+    final content = rs.careerPathMarkdown;
+    
+    if (content != null && content.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("GENERATING_PREMIUM_PDF (via Backend)..."), backgroundColor: AppTheme.secondaryBlue),
+      );
+      
+      final success = await rs.exportPdfDirect("Career Path Analysis", content);
+      
+      if (!success && mounted) {
+        await rs.generateLocalPdf("Career Path Analysis", content);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("DATA_NULL: Generate recommendations first.")),
+      );
     }
   }
 
@@ -62,126 +93,226 @@ class _CareerPathScreenState extends State<CareerPathScreen> {
     final company = _companyController.text.trim();
     
     if (role.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Target Role cannot be empty.")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Goal specification required.")));
       return;
     }
 
     ResumeService().setTarget(role, company: company.isNotEmpty ? company : null);
     
-    setState(() {}); // refresh the UI checkmark
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Career Goal set to $role ${company.isNotEmpty ? 'at $company' : ''}!")));
+    final auth = Provider.of<AuthService>(context, listen: false);
+    ResumeService().saveData(auth).then((success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success 
+              ? "CAREER_GOAL: $role locked in." 
+              : "Local buffer updated. Cloud sync pending."),
+            backgroundColor: success ? AppTheme.primaryNeon : Colors.orange,
+          )
+        );
+      }
+    });
+
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: const Navbar(),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: AppTheme.darkBg,
+      body: Column(
         children: [
-          // Left Side: AI Recommendations
+          const Navbar(),
           Expanded(
-            flex: 2,
-            child: Container(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              color: Colors.grey[50],
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                     children: [
-                       const Text("AI Recommended Careers", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
-                       ElevatedButton.icon(
-                         onPressed: _isLoadingRecommendations ? null : _generateRecommendations,
-                         icon: const Icon(Icons.refresh, size: 18),
-                         label: const Text("Regenerate"),
-                       )
-                     ]
+                  Text(
+                    "CAREER_TRAJECTORY.LOG",
+                    style: theme.textTheme.labelLarge,
+                  ).animate().fadeIn().slideX(),
+                  Text(
+                    "Algorithmic Pathfinding",
+                    style: theme.textTheme.displayMedium,
+                  ).animate().fadeIn(delay: 200.ms).slideX(),
+                  const SizedBox(height: 32),
+                  
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      bool isMobile = constraints.maxWidth < 900;
+                      return Column(
+                        children: [
+                          if (!isMobile)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 2, child: _buildAiSection(theme)),
+                                const SizedBox(width: 24),
+                                Expanded(flex: 1, child: _buildFormSection(theme)),
+                              ],
+                            )
+                          else
+                            Column(
+                              children: [
+                                _buildFormSection(theme),
+                                const SizedBox(height: 24),
+                                _buildAiSection(theme),
+                              ],
+                            ),
+                        ],
+                      );
+                    },
                   ),
-                  const SizedBox(height: 16),
-                  if (ResumeService().extractedSkills.isEmpty)
-                     const Card(child: Padding(padding: EdgeInsets.all(16), child: Text("Upload a resume first in Resume Intelligence to get AI career recommendations.")))
-                  else if (_isLoadingRecommendations)
-                     const Center(child: Padding(padding: EdgeInsets.all(40.0), child: CircularProgressIndicator()))
-                  else if (_recommendationsMarkdown != null)
-                     Expanded(
-                       child: Container(
-                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)),
-                         padding: const EdgeInsets.all(20),
-                         child: Markdown(data: _recommendationsMarkdown!),
-                       )
-                     )
                 ],
               ),
             ),
           ),
-          
-          // Right Side: Manual Override Form
-          Expanded(
-            flex: 1,
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              color: Colors.white,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      floatingActionButton: _recommendationsMarkdown != null && !_isLoadingRecommendations
+          ? FloatingActionButton.extended(
+              onPressed: _downloadPdf,
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: const Text("EXPORT_PDF", style: TextStyle(fontFamily: 'JetBrainsMono', fontWeight: FontWeight.bold)),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildAiSection(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: AppTheme.darkSurface,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 children: [
-                   const Text("Set Career Goal", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF6366F1))),
-                   const SizedBox(height: 8),
-                   const Text("Manually specify your exact target role and preferred company to calibrate the AI across the entire app.", style: TextStyle(color: Colors.black54)),
-                   const SizedBox(height: 32),
-                   
-                   TextField(
-                     controller: _roleController,
-                     decoration: InputDecoration(
-                        labelText: "Target Role (e.g. Software Engineer)",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        prefixIcon: const Icon(Icons.work)
-                     ),
-                   ),
-                   const SizedBox(height: 20),
-                   TextField(
-                     controller: _companyController,
-                     decoration: InputDecoration(
-                        labelText: "Target Company (Optional, e.g. Google)",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        prefixIcon: const Icon(Icons.business)
-                     ),
-                   ),
-                   const SizedBox(height: 32),
-                   SizedBox(
-                     width: double.infinity,
-                     height: 50,
-                     child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                           backgroundColor: const Color(0xFF6366F1),
-                           foregroundColor: Colors.white,
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
-                        ),
-                        onPressed: _saveTarget,
-                        child: const Text("Lock in Goal", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                     ),
-                   ),
-                   
-                   const SizedBox(height: 32),
-                   if (ResumeService().selectedRole != null)
-                     Container(
-                       padding: const EdgeInsets.all(16),
-                       decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                       child: Row(
-                         children: [
-                           const Icon(Icons.check_circle, color: Colors.green),
-                           const SizedBox(width: 12),
-                           Expanded(child: Text("Currently targeting: ${ResumeService().selectedRole} ${ResumeService().selectedCompany != null ? 'at ${ResumeService().selectedCompany}' : ''}")),
-                         ],
-                       )
-                     )
+                  const Icon(Icons.psychology_outlined, color: AppTheme.primaryNeon, size: 20),
+                  const SizedBox(width: 12),
+                  Text("AI_RECOMMENDATIONS", style: theme.textTheme.titleLarge),
                 ],
               ),
-            )
-          )
+              IconButton(
+                onPressed: _isLoadingRecommendations ? null : _generateRecommendations,
+                icon: const Icon(Icons.refresh, size: 18, color: AppTheme.secondaryBlue),
+                tooltip: "RECALIBRATE",
+              )
+            ],
+          ),
+          const Divider(height: 48),
+          if (ResumeService().extractedSkills.isEmpty)
+             const Center(
+               child: Padding(
+                 padding: EdgeInsets.all(40.0),
+                 child: Text("DATA_MISSING: Upload resume to initialize neural recommendations.", textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textDim)),
+               ),
+             )
+          else if (_isLoadingRecommendations)
+             const Center(child: Padding(padding: EdgeInsets.all(80.0), child: CircularProgressIndicator(color: AppTheme.primaryNeon)))
+          else if (_recommendationsMarkdown != null)
+             MarkdownBody(
+               data: _recommendationsMarkdown!,
+               styleSheet: MarkdownStyleSheet(
+                 p: theme.textTheme.bodyMedium?.copyWith(height: 1.6, color: AppTheme.textMain),
+                 h1: theme.textTheme.titleLarge?.copyWith(color: AppTheme.primaryNeon),
+                 h2: theme.textTheme.titleLarge?.copyWith(color: AppTheme.secondaryBlue, fontSize: 18),
+                 h3: theme.textTheme.titleLarge?.copyWith(color: AppTheme.accentPurple, fontSize: 16),
+                 code: const TextStyle(backgroundColor: AppTheme.darkBg, color: AppTheme.secondaryBlue, fontFamily: 'JetBrainsMono'),
+                 listBullet: const TextStyle(color: AppTheme.primaryNeon),
+               ),
+             )
         ],
-      )
-    );
+      ),
+    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1);
+  }
+
+  Widget _buildFormSection(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: AppTheme.darkSurface,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.track_changes, color: AppTheme.accentPurple, size: 20),
+              const SizedBox(width: 12),
+              Text("LOCK_GOAL", style: theme.textTheme.titleLarge),
+            ],
+          ),
+          const Divider(height: 48),
+          const Text("Manually specify target role to calibrate system diagnostics.", style: TextStyle(color: AppTheme.textDim, fontSize: 12, height: 1.5)),
+          const SizedBox(height: 32),
+          
+          TextField(
+            controller: _roleController,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+               labelText: "TARGET_ROLE",
+               hintText: "e.g. SOFTWARE_ENGINEER",
+               prefixIcon: Icon(Icons.work_outline, size: 18)
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _companyController,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+               labelText: "TARGET_COMPANY",
+               hintText: "OPTIONAL_FIELD",
+               prefixIcon: Icon(Icons.business_outlined, size: 18)
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+               onPressed: _saveTarget,
+               child: const Text("EXECUTE_LOCK"),
+            ),
+          ),
+          
+          if (ResumeService().selectedRole != null) ...[
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryNeon.withOpacity(0.05), 
+                borderRadius: BorderRadius.circular(2),
+                border: Border.all(color: AppTheme.primaryNeon.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline, color: AppTheme.primaryNeon, size: 16),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "ACTIVE_TARGET: ${ResumeService().selectedRole!.toUpperCase()}",
+                      style: const TextStyle(color: AppTheme.primaryNeon, fontSize: 10, fontFamily: 'JetBrainsMono', fontWeight: FontWeight.bold),
+                    )
+                  ),
+                ],
+              ),
+            ).animate().scale(),
+          ]
+        ],
+      ),
+    ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1);
   }
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../services/api_config.dart';
+import '../theme/app_theme.dart';
 
 class AiChatPanel extends StatefulWidget {
   final VoidCallback onClose;
@@ -16,7 +17,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
   final TextEditingController controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<Map<String, String>> messages = [
-    {"role": "ai", "text": "I am Mark, your career assistant. How can I help you today?"}
+    {"role": "ai", "text": "SESSION_INITIALIZED: I am Mark, your career diagnostic node. How can I assist with your trajectory today?"}
   ];
   bool _isLoading = false;
 
@@ -46,7 +47,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
     try {
       final historyList = messages
           .sublist(0, messages.length - 1)
-          .where((m) => m["text"] != "I am Mark, your career assistant. How can I help you today?")
+          .where((m) => !m["text"]!.startsWith("SESSION_INITIALIZED"))
           .map((m) => {
             "role": m["role"] == "user" ? "user" : "model",
             "parts": [{"text": m["text"]}]
@@ -71,14 +72,14 @@ class _AiChatPanelState extends State<AiChatPanel> {
       } else {
         if (mounted) {
           setState(() {
-            messages.add({"role": "ai", "text": "Something went wrong. Please try again."});
+            messages.add({"role": "ai", "text": "ERROR: PROTOCOL_INTERRUPTED. Please re-transmit."});
           });
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          messages.add({"role": "ai", "text": "Network error. Make sure backend is running."});
+          messages.add({"role": "ai", "text": "ERROR: CONNECTION_FAILURE. Verify backend status."});
         });
       }
     } finally {
@@ -97,11 +98,12 @@ class _AiChatPanelState extends State<AiChatPanel> {
       width: 350,
       height: 500,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: AppTheme.darkBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withOpacity(0.5),
             blurRadius: 30,
             offset: const Offset(0, 10),
           ),
@@ -113,30 +115,27 @@ class _AiChatPanelState extends State<AiChatPanel> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
-              color: Color(0xFF6366F1),
+              color: AppTheme.darkSurface,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
               ),
+              border: Border(bottom: BorderSide(color: AppTheme.borderSubtle)),
             ),
             child: Row(
               children: [
-                const CircleAvatar(
-                  backgroundColor: Colors.white24,
-                  radius: 16,
-                  child: Icon(Icons.smart_toy, color: Colors.white, size: 18),
-                ),
+                const Icon(Icons.terminal, color: AppTheme.primaryNeon, size: 20),
                 const SizedBox(width: 12),
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Mark AI", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text("Online", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text("MARK_AI.EXE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'JetBrainsMono')),
+                    Text("STATUS: ONLINE", style: TextStyle(color: AppTheme.primaryNeon, fontSize: 10, fontFamily: 'JetBrainsMono')),
                   ],
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: const Icon(Icons.close, color: AppTheme.textDim, size: 20),
                   onPressed: widget.onClose,
                 ),
               ],
@@ -147,13 +146,13 @@ class _AiChatPanelState extends State<AiChatPanel> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               itemCount: messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == messages.length) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                    child: Center(child: SizedBox(width: 20, height: 2, child: LinearProgressIndicator(color: AppTheme.primaryNeon, backgroundColor: AppTheme.darkSurface))),
                   );
                 }
                 
@@ -163,53 +162,72 @@ class _AiChatPanelState extends State<AiChatPanel> {
                 return Align(
                   alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
                   child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isAi ? Colors.grey[100] : const Color(0xFF6366F1),
-                      borderRadius: BorderRadius.circular(15).copyWith(
-                        bottomLeft: isAi ? Radius.zero : const Radius.circular(15),
-                        bottomRight: isAi ? const Radius.circular(15) : Radius.zero,
-                      ),
+                      color: isAi ? AppTheme.darkSurface : AppTheme.primaryNeon.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: isAi ? AppTheme.borderSubtle : AppTheme.primaryNeon.withOpacity(0.3)),
                     ),
-                    constraints: const BoxConstraints(maxWidth: 260),
-                    child: Text(
-                      msg["text"]!,
-                      style: TextStyle(color: isAi ? Colors.black87 : Colors.white, fontSize: 14),
+                    constraints: const BoxConstraints(maxWidth: 280),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isAi ? "AI_NODE" : "USER_INPUT",
+                          style: TextStyle(color: isAi ? AppTheme.secondaryBlue : AppTheme.primaryNeon, fontSize: 10, fontFamily: 'JetBrainsMono', fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          msg["text"]!,
+                          style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
+                        ),
+                      ],
                     ),
-                  ),
+                  ).animate().fadeIn().slideY(begin: 0.1),
                 );
               },
             ),
           ),
           
           // Input
-          Padding(
-            padding: const EdgeInsets.all(12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: AppTheme.darkSurface,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+              border: Border(top: BorderSide(color: AppTheme.borderSubtle)),
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: controller,
-                    decoration: InputDecoration(
-                      hintText: "Type a message...",
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: const InputDecoration(
+                      hintText: "TRANSMIT MESSAGE...",
+                      hintStyle: TextStyle(color: AppTheme.textDim, fontSize: 11),
                       filled: true,
-                      fillColor: Colors.grey[100],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      fillColor: AppTheme.darkBg,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                     onSubmitted: (_) => sendMessage(),
                   ),
                 ),
-                const SizedBox(width: 8),
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF6366F1),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white, size: 18),
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: 48,
+                  width: 48,
+                  child: ElevatedButton(
                     onPressed: sendMessage,
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    ),
+                    child: const Icon(Icons.send_rounded, size: 18),
                   ),
                 ),
               ],
@@ -220,3 +238,4 @@ class _AiChatPanelState extends State<AiChatPanel> {
     );
   }
 }
+

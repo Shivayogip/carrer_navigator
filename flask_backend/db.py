@@ -5,11 +5,38 @@ from supabase import create_client, Client
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+BUCKET_NAME = "pdf-reports"
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print("WARNING: Supabase credentials not found in environment.")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+
+def upload_pdf_to_storage(user_id, report_type, pdf_bytes):
+    """Uploads PDF bytes to Supabase Storage and returns the public URL."""
+    try:
+        from datetime import datetime
+        filename = f"{user_id}/{report_type}_{int(datetime.now().timestamp())}.pdf"
+        
+        if not supabase:
+            print("Error: Supabase client not initialized.")
+            return None
+
+        # Upload
+        supabase.storage.from_(BUCKET_NAME).upload(
+            filename, 
+            pdf_bytes, 
+            {"content-type": "application/pdf", "upsert": "true"}
+        )
+        
+        # Get public URL
+        url = supabase.storage.from_(BUCKET_NAME).get_public_url(filename)
+        return url
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Error uploading PDF to storage ({report_type}): {e}")
+        return None
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -74,15 +101,38 @@ def get_or_create_google_user(email, name):
     user_id, err = create_user(email, "", name)
     return user_id, name
 
-def save_user_data(user_id, resume_text, skills, role, score):
+def save_user_data(user_id, resume_text=None, skills=None, role=None, score=None, 
+                   target_company=None, career_path=None, career_roadmap=None, 
+                   missing_skills=None, project_recommendations=None,
+                   resume_analysis_url=None, career_path_url=None, 
+                   career_roadmap_url=None, project_recommendations_url=None,
+                   resume_builder_url=None):
     try:
-        supabase.table('user_data').upsert({
-            "user_id": user_id,
-            "resume_text": resume_text,
-            "skills": skills,
-            "role": role,
-            "score": score
-        }).execute()
+        data = {"user_id": user_id}
+        
+        if resume_text is not None: data["resume_text"] = resume_text
+        if skills is not None: data["skills"] = skills
+        if role is not None: data["role"] = role
+        if score is not None: data["score"] = score
+        if target_company is not None: data["target_company"] = target_company
+        if career_path is not None: data["career_path"] = career_path
+        if career_roadmap is not None: data["career_roadmap"] = career_roadmap
+        if missing_skills is not None: data["missing_skills"] = missing_skills
+        if project_recommendations is not None: data["project_recommendations"] = project_recommendations
+        
+        # New PDF URL fields
+        if resume_analysis_url is not None: data["resume_analysis_url"] = resume_analysis_url
+        if career_path_url is not None: data["career_path_url"] = career_path_url
+        if career_roadmap_url is not None: data["career_roadmap_url"] = career_roadmap_url
+        if project_recommendations_url is not None: data["project_recommendations_url"] = project_recommendations_url
+        if resume_builder_url is not None: data["resume_builder_url"] = resume_builder_url
+
+        # Try updating first
+        response = supabase.table('user_data').update(data).eq('user_id', user_id).execute()
+        
+        # If no rows updated, it means the record doesn't exist, so we insert
+        if not response.data or len(response.data) == 0:
+            supabase.table('user_data').insert(data).execute()
     except Exception as e:
         print(f"Error saving user data: {e}")
 
@@ -203,7 +253,7 @@ def get_user_data(user_id):
         
         user_info = user_response.data[0]
         
-        data_response = supabase.table('user_data').select('resume_text, skills, role, score, current_streak, last_activity_date').eq('user_id', user_id).execute()
+        data_response = supabase.table('user_data').select('resume_text, skills, role, score, current_streak, last_activity_date, target_company, career_path, career_roadmap, missing_skills, project_recommendations, resume_analysis_url, career_path_url, career_roadmap_url, project_recommendations_url, resume_builder_url').eq('user_id', user_id).execute()
         
         result = {
             "email": user_info.get("email"),
@@ -217,6 +267,16 @@ def get_user_data(user_id):
             "skills": None,
             "role": None,
             "score": None,
+            "target_company": None,
+            "career_path": None,
+            "career_roadmap": None,
+            "missing_skills": None,
+            "project_recommendations": None,
+            "resume_analysis_url": None,
+            "career_path_url": None,
+            "career_roadmap_url": None,
+            "project_recommendations_url": None,
+            "resume_builder_url": None,
             "current_streak": 0,
             "last_activity_date": None
         }
@@ -241,6 +301,16 @@ def get_user_data(user_id):
                 "skills": d.get("skills"),
                 "role": d.get("role"),
                 "score": d.get("score"),
+                "target_company": d.get("target_company"),
+                "career_path": d.get("career_path"),
+                "career_roadmap": d.get("career_roadmap"),
+                "missing_skills": d.get("missing_skills"),
+                "project_recommendations": d.get("project_recommendations"),
+                "resume_analysis_url": d.get("resume_analysis_url"),
+                "career_path_url": d.get("career_path_url"),
+                "career_roadmap_url": d.get("career_roadmap_url"),
+                "project_recommendations_url": d.get("project_recommendations_url"),
+                "resume_builder_url": d.get("resume_builder_url"),
                 "current_streak": current_streak,
                 "last_activity_date": last_date_str
             })
