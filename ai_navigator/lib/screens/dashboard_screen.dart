@@ -34,7 +34,8 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingObserver {
+class _DashboardScreenState extends State<DashboardScreen>
+    with WidgetsBindingObserver {
   bool _isLoading = true;
   Map<String, dynamic>? _userData;
   bool _isChatOpen = false;
@@ -53,7 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _fetchUserData();
     _loadNotificationPreference();
     _fetchTodayTasks();
-    
+
     if (!kIsWeb) {
       NotificationService().cancelInactivityReminder();
     }
@@ -70,7 +71,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!kIsWeb) {
-      if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (state == AppLifecycleState.paused ||
+          state == AppLifecycleState.inactive) {
         if (_inactivityReminderEnabled) {
           NotificationService().scheduleInactivityReminder();
         }
@@ -84,7 +86,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _notificationsEnabled = prefs.getBool('daily_reminder_enabled') ?? false;
-      _inactivityReminderEnabled = prefs.getBool('inactivity_reminder_enabled') ?? false;
+      _inactivityReminderEnabled =
+          prefs.getBool('inactivity_reminder_enabled') ?? false;
     });
   }
 
@@ -95,15 +98,19 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     } else {
       await NotificationService().cancelInactivityReminder();
     }
-    
+
     await prefs.setBool('inactivity_reminder_enabled', value);
     setState(() {
       _inactivityReminderEnabled = value;
     });
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(value ? "Monitoring inactive state..." : "Monitoring disabled")),
+        SnackBar(
+          content: Text(
+            value ? "Monitoring inactive state..." : "Monitoring disabled",
+          ),
+        ),
       );
     }
   }
@@ -158,9 +165,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
           ResumeService().syncFromBackend(data);
 
-          if (showResumePrompt && !_promptShown &&
-              (_userData != null && (_userData!['resume_text'] == null ||
-                  _userData!['resume_text'].toString().isEmpty))) {
+          if (showResumePrompt &&
+              !_promptShown &&
+              (_userData != null &&
+                  (_userData!['resume_text'] == null ||
+                      _userData!['resume_text'].toString().isEmpty))) {
             _promptShown = true;
             Future.delayed(const Duration(seconds: 1), () {
               if (mounted) _showResumePrompt();
@@ -189,11 +198,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
   Future<void> _addNewTask() async {
     if (_taskController.text.trim().isEmpty) return;
-    
+
     final auth = Provider.of<AuthService>(context, listen: false);
     try {
       final success = await auth.logDailyTask(_taskController.text.trim());
-      
+
       if (success && mounted) {
         _taskController.clear();
         _fetchTodayTasks();
@@ -204,9 +213,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
@@ -262,113 +271,194 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Column(
-        children: [
-          const Navbar(),
-          Expanded(
-            child: Stack(
-              children: [
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "SYSTEM.STATUS: ONLINE",
-                                        style: theme.textTheme.labelLarge,
-                                      ).animate().fadeIn().slideX(),
-                                      Text(
-                                        "Welcome, ${(user?.displayName != null && user!.displayName!.isNotEmpty) ? user.displayName : (user?.email ?? 'User')}",
-                                        style: theme.textTheme.displayMedium,
-                                      ).animate().fadeIn(delay: 200.ms).slideX(),
-                                    ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Navbar(),
+            Expanded(
+              child: Stack(
+                children: [
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 20,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "SYSTEM.STATUS: ONLINE",
+                                          style: theme.textTheme.labelLarge,
+                                        ).animate().fadeIn().slideX(),
+                                        Text(
+                                          "Welcome, ${(user?.displayName != null && user!.displayName!.isNotEmpty) ? user.displayName : (user?.email ?? 'User')}",
+                                          style: theme.textTheme.displayMedium,
+                                        ).animate().fadeIn(delay: 200.ms).slideX(),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                if (user != null)
-                                  _buildStreakChip(user, theme).animate().scale(delay: 400.ms),
-                              ],
-                            ),
-                            const SizedBox(height: 32),
-
-                            // Achievements
-                            if (user != null && user.badges.isNotEmpty) ...[
-                              Text("ACHIEVEMENTS.LOG", style: theme.textTheme.labelLarge),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                height: 90,
-                                child: ListView.separated(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: user.badges.length,
-                                  separatorBuilder: (_, __) => const SizedBox(width: 16),
-                                  itemBuilder: (context, index) {
-                                    return _buildBadgeItem(user.badges[index]);
-                                  },
-                                ),
-                              ).animate().fadeIn(delay: 500.ms),
+                                  if (user != null)
+                                    _buildStreakChip(
+                                      user,
+                                      theme,
+                                    ).animate().scale(delay: 400.ms),
+                                ],
+                              ),
                               const SizedBox(height: 32),
+
+                              // Achievements
+                              if (user != null && user.badges.isNotEmpty) ...[
+                                Text(
+                                  "ACHIEVEMENTS.LOG",
+                                  style: theme.textTheme.labelLarge,
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  height: 90,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: user.badges.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(width: 16),
+                                    itemBuilder: (context, index) {
+                                      return _buildBadgeItem(
+                                        user.badges[index],
+                                      );
+                                    },
+                                  ),
+                                ).animate().fadeIn(delay: 500.ms),
+                                const SizedBox(height: 32),
+                              ],
+
+                              // Score / Banner
+                              if (_userData != null &&
+                                  _userData!['score'] != null &&
+                                  _userData!['score'] > 0)
+                                _buildScoreCard(theme)
+                                    .animate()
+                                    .fadeIn(delay: 600.ms)
+                                    .slideY(begin: 0.1)
+                              else
+                                _buildResumeBanner(
+                                  theme,
+                                ).animate().fadeIn(delay: 600.ms),
+
+                              const SizedBox(height: 32),
+
+                              // Terminal Logger
+                              _buildTerminalLogger(
+                                theme,
+                              ).animate().fadeIn(delay: 700.ms),
+
+                              const SizedBox(height: 32),
+
+                              Text(
+                                "MODULES.INIT",
+                                style: theme.textTheme.labelLarge,
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Grid
+                              GridView.extent(
+                                maxCrossAxisExtent: 170,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 1.0,
+                                children: [
+                                  _buildActionCard(
+                                    context,
+                                    "RESUME_ANALYSIS",
+                                    Icons.document_scanner,
+                                    theme.colorScheme.secondary,
+                                    const ResumeIntelligence(),
+                                  ),
+                                  _buildActionCard(
+                                    context,
+                                    "CAREER_PATH",
+                                    Icons.auto_graph,
+                                    Colors.cyan,
+                                    const CareerPathScreen(),
+                                  ),
+                                  _buildActionCard(
+                                    context,
+                                    "SKILL_GAP",
+                                    Icons.analytics_outlined,
+                                    Colors.orange,
+                                    const SkillGapScreen(),
+                                  ),
+                                  _buildActionCard(
+                                    context,
+                                    "ROADMAP_GEN",
+                                    Icons.map_outlined,
+                                    Colors.purple,
+                                    const RoadmapScreen(),
+                                  ),
+                                  _buildActionCard(
+                                    context,
+                                    "PROJ_IDEAS",
+                                    Icons.lightbulb_outline,
+                                    Colors.amber,
+                                    const ProjectRecommendationScreen(),
+                                  ),
+                                  _buildActionCard(
+                                    context,
+                                    "REPORT_CARD",
+                                    Icons.assessment_outlined,
+                                    Colors.teal,
+                                    const ResumeScoringScreen(),
+                                  ),
+                                  _buildActionCard(
+                                    context,
+                                    "INT_PREP",
+                                    Icons.mic_none,
+                                    Colors.redAccent,
+                                    const InterviewPrepScreen(),
+                                  ),
+                                  _buildActionCard(
+                                    context,
+                                    "PROGRESS",
+                                    Icons.track_changes,
+                                    Colors.indigo,
+                                    const ProgressTrackerScreen(),
+                                  ),
+                                  _buildActionCard(
+                                    context,
+                                    "GIT_STATS",
+                                    Icons.code,
+                                    theme.colorScheme.primary,
+                                    const GithubAnalyzerScreen(),
+                                  ),
+                                ].animate(interval: 50.ms).fadeIn().scale(),
+                              ),
+
+                              const SizedBox(height: 40),
                             ],
-
-                            // Score / Banner
-                            if (_userData != null && _userData!['score'] != null && _userData!['score'] > 0)
-                              _buildScoreCard(theme).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1)
-                            else
-                              _buildResumeBanner(theme).animate().fadeIn(delay: 600.ms),
-
-                            const SizedBox(height: 32),
-
-                            // Terminal Logger
-                            _buildTerminalLogger(theme).animate().fadeIn(delay: 700.ms),
-
-                            const SizedBox(height: 32),
-
-                            Text("MODULES.INIT", style: theme.textTheme.labelLarge),
-                            const SizedBox(height: 16),
-
-                            // Grid
-                            GridView.extent(
-                              maxCrossAxisExtent: 220,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 1.1,
-                              children: [
-                                _buildActionCard(context, "RESUME_ANALYSIS", Icons.document_scanner, theme.colorScheme.secondary, const ResumeIntelligence()),
-                                _buildActionCard(context, "CAREER_PATH", Icons.auto_graph, Colors.cyan, const CareerPathScreen()),
-                                _buildActionCard(context, "SKILL_GAP", Icons.analytics_outlined, Colors.orange, const SkillGapScreen()),
-                                _buildActionCard(context, "ROADMAP_GEN", Icons.map_outlined, Colors.purple, const RoadmapScreen()),
-                                _buildActionCard(context, "PROJ_IDEAS", Icons.lightbulb_outline, Colors.amber, const ProjectRecommendationScreen()),
-                                _buildActionCard(context, "REPORT_CARD", Icons.assessment_outlined, Colors.teal, const ResumeScoringScreen()),
-                                _buildActionCard(context, "INT_PREP", Icons.mic_none, Colors.redAccent, const InterviewPrepScreen()),
-                                _buildActionCard(context, "PROGRESS", Icons.track_changes, Colors.indigo, const ProgressTrackerScreen()),
-                                _buildActionCard(context, "GIT_STATS", Icons.code, theme.colorScheme.primary, const GithubAnalyzerScreen()),
-                              ].animate(interval: 50.ms).fadeIn().scale(),
-                            ),
-
-                            const SizedBox(height: 40),
-                          ],
+                          ),
                         ),
+                  if (_isChatOpen)
+                    Positioned(
+                      right: MediaQuery.of(context).size.width < 400 ? 16 : 24,
+                      bottom: 100,
+                      child: AiChatPanel(
+                        onClose: () => setState(() => _isChatOpen = false),
                       ),
-                if (_isChatOpen)
-                  Positioned(
-                    right: 24,
-                    bottom: 100,
-                    child: AiChatPanel(
-                      onClose: () => setState(() => _isChatOpen = false),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => setState(() => _isChatOpen = !_isChatOpen),
@@ -384,11 +474,17 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       decoration: BoxDecoration(
         color: hasStreak ? Colors.orange.withOpacity(0.1) : theme.cardColor,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: hasStreak ? Colors.orange : theme.dividerColor),
+        border: Border.all(
+          color: hasStreak ? Colors.orange : theme.dividerColor,
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.bolt, color: hasStreak ? Colors.orange : theme.disabledColor, size: 20),
+          Icon(
+            Icons.bolt,
+            color: hasStreak ? Colors.orange : theme.disabledColor,
+            size: 20,
+          ),
           const SizedBox(width: 8),
           Text(
             "STREAK: ${user.currentStreak}",
@@ -428,10 +524,17 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               width: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2), width: 8),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.2),
+                  width: 8,
+                ),
               ),
               child: Center(
-                child: Icon(Icons.analytics_outlined, color: theme.colorScheme.primary, size: 40),
+                child: Icon(
+                  Icons.analytics_outlined,
+                  color: theme.colorScheme.primary,
+                  size: 40,
+                ),
               ),
             ),
           ],
@@ -454,7 +557,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: theme.cardColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(8),
+              ),
             ),
             child: Row(
               children: [
@@ -462,7 +567,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                 _dot(Colors.amber),
                 _dot(Colors.green),
                 const SizedBox(width: 12),
-                Text("PROGRESS_LOGGER.SH", style: theme.textTheme.labelLarge?.copyWith(fontSize: 10)),
+                Text(
+                  "PROGRESS_LOGGER.SH",
+                  style: theme.textTheme.labelLarge?.copyWith(fontSize: 10),
+                ),
               ],
             ),
           ),
@@ -471,21 +579,34 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ..._todayTasks.map((task) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    "> ${task['task_desc']}",
-                    style: GoogleFonts.jetBrainsMono(color: theme.colorScheme.secondary, fontSize: 13),
+                ..._todayTasks.map(
+                  (task) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      "> ${task['task_desc']}",
+                      style: GoogleFonts.jetBrainsMono(
+                        color: theme.colorScheme.secondary,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
-                )),
+                ),
                 Row(
                   children: [
-                    Text("\$ ", style: GoogleFonts.jetBrainsMono(color: theme.colorScheme.primary)),
+                    Text(
+                      "\$ ",
+                      style: GoogleFonts.jetBrainsMono(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
                     Expanded(
                       child: TextField(
                         controller: _taskController,
                         focusNode: _taskFocusNode,
-                        style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 13),
+                        style: GoogleFonts.jetBrainsMono(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
                         decoration: const InputDecoration(
                           hintText: "log entry...",
                           filled: false,
@@ -525,12 +646,18 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("SYSTEM_INITIALIZATION_REQUIRED", style: theme.textTheme.titleLarge),
+          Text(
+            "SYSTEM_INITIALIZATION_REQUIRED",
+            style: theme.textTheme.titleLarge,
+          ),
           const SizedBox(height: 8),
-          const Text("Please upload resume data to unlock AI diagnostic tools."),
+          const Text(
+            "Please upload resume data to unlock AI diagnostic tools.",
+          ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () => Navigator.push(context, fadeRoute(const ResumeIntelligence())),
+            onPressed: () =>
+                Navigator.push(context, fadeRoute(const ResumeIntelligence())),
             child: const Text("EXEC_UPLOAD"),
           ),
         ],
@@ -544,8 +671,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     Color color = theme.colorScheme.primary;
 
     if (type.contains('welcome')) icon = Icons.power;
-    if (type.contains('consistent')) { icon = Icons.repeat; color = Colors.orange; }
-    if (type.contains('explorer')) { icon = Icons.search; color = Colors.cyan; }
+    if (type.contains('consistent')) {
+      icon = Icons.repeat;
+      color = Colors.orange;
+    }
+    if (type.contains('explorer')) {
+      icon = Icons.search;
+      color = Colors.cyan;
+    }
 
     return Column(
       children: [
@@ -559,12 +692,24 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           child: Icon(icon, color: color, size: 24),
         ),
         const SizedBox(height: 4),
-        Text(type.toUpperCase(), style: theme.textTheme.labelLarge?.copyWith(fontSize: 8, color: color)),
+        Text(
+          type.toUpperCase(),
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontSize: 8,
+            color: color,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildActionCard(BuildContext context, String title, IconData icon, Color color, Widget screen) {
+  Widget _buildActionCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    Widget screen,
+  ) {
     return _AnimatedToolCard(
       title: title,
       icon: icon,
@@ -580,7 +725,12 @@ class _AnimatedToolCard extends StatefulWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _AnimatedToolCard({required this.title, required this.icon, required this.color, required this.onTap});
+  const _AnimatedToolCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   State<_AnimatedToolCard> createState() => _AnimatedToolCardState();
@@ -601,17 +751,26 @@ class _AnimatedToolCardState extends State<_AnimatedToolCard> {
         child: AnimatedContainer(
           duration: 200.ms,
           decoration: BoxDecoration(
-            color: _isHovering ? theme.colorScheme.surface : theme.scaffoldBackgroundColor,
+            color: _isHovering
+                ? theme.colorScheme.surface
+                : theme.scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: _isHovering ? widget.color : theme.dividerColor),
+            border: Border.all(
+              color: _isHovering ? widget.color : theme.dividerColor,
+            ),
             boxShadow: [
-              if (_isHovering) BoxShadow(color: widget.color.withOpacity(0.1), blurRadius: 10),
+              if (_isHovering)
+                BoxShadow(color: widget.color.withOpacity(0.1), blurRadius: 10),
             ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(widget.icon, size: 32, color: _isHovering ? widget.color : theme.disabledColor),
+              Icon(
+                widget.icon,
+                size: 32,
+                color: _isHovering ? widget.color : theme.disabledColor,
+              ),
               const SizedBox(height: 12),
               Text(
                 widget.title,

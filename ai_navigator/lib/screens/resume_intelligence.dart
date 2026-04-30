@@ -11,6 +11,8 @@ import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as spdf;
 import 'package:docx_creator/docx_creator.dart' as sdocx;
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io';
+import 'package:open_filex/open_filex.dart';
 
 import '../services/auth_service.dart';
 import '../services/api_config.dart';
@@ -30,7 +32,7 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
   PlatformFile? selectedFile;
   Map<String, dynamic>? analysisResult;
   bool isLoading = false;
-  
+
   // Builder State
   bool _isAnalyzerMode = true;
   int _currentStep = 1; // 1 to 4
@@ -41,7 +43,7 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _summaryController = TextEditingController();
   final TextEditingController _skillsController = TextEditingController();
-  
+
   // Work Experience (Static as requested in user snippet)
   final TextEditingController _job1Title = TextEditingController();
   final TextEditingController _job1Company = TextEditingController();
@@ -124,16 +126,17 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       }
 
       if (kIsWeb) {
-        request.files.add(http.MultipartFile.fromBytes(
-          'resume',
-          selectedFile!.bytes!,
-          filename: selectedFile!.name,
-        ));
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'resume',
+            selectedFile!.bytes!,
+            filename: selectedFile!.name,
+          ),
+        );
       } else {
-        request.files.add(await http.MultipartFile.fromPath(
-          'resume',
-          selectedFile!.path!,
-        ));
+        request.files.add(
+          await http.MultipartFile.fromPath('resume', selectedFile!.path!),
+        );
       }
 
       var streamedResponse = await request.send();
@@ -154,14 +157,14 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
           ResumeService().saveData(auth);
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${response.body}")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: ${response.body}")));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Upload failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Upload failed: $e")));
     } finally {
       setState(() {
         isLoading = false;
@@ -180,14 +183,29 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
         "name": _nameController.text,
         "email": _emailController.text,
         "summary": _summaryController.text,
-        "skills": _skillsController.text.split(',').map((s) => s.trim()).toList(),
+        "skills": _skillsController.text
+            .split(',')
+            .map((s) => s.trim())
+            .toList(),
         "experience": [
-          {"title": _job1Title.text, "company": _job1Company.text, "description": _job1Desc.text},
-          {"title": _job2Title.text, "company": _job2Company.text, "description": _job2Desc.text},
+          {
+            "title": _job1Title.text,
+            "company": _job1Company.text,
+            "description": _job1Desc.text,
+          },
+          {
+            "title": _job2Title.text,
+            "company": _job2Company.text,
+            "description": _job2Desc.text,
+          },
         ],
         "education": [
-          {"school": _edu1School.text, "degree": _edu1Degree.text, "year": _edu1Year.text},
-        ]
+          {
+            "school": _edu1School.text,
+            "degree": _edu1Degree.text,
+            "year": _edu1Year.text,
+          },
+        ],
       };
 
       final response = await http.post(
@@ -205,13 +223,19 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
         if (kIsWeb && url != null) {
           html.window.open(url, "_blank");
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("PDF Generated: $url")));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("PDF Generated: $url")));
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Server error: ${response.statusCode}")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Server error: ${response.statusCode}")),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       setState(() => isLoading = false);
     }
@@ -221,82 +245,177 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
     final spdf.PdfDocument document = spdf.PdfDocument();
     final spdf.PdfPage page = document.pages.add();
     final spdf.PdfGraphics graphics = page.graphics;
-    final spdf.PdfFont titleFont = spdf.PdfStandardFont(spdf.PdfFontFamily.helvetica, 24, style: spdf.PdfFontStyle.bold);
-    final spdf.PdfFont headerFont = spdf.PdfStandardFont(spdf.PdfFontFamily.helvetica, 14, style: spdf.PdfFontStyle.bold);
-    final spdf.PdfFont bodyFont = spdf.PdfStandardFont(spdf.PdfFontFamily.helvetica, 10);
-    final spdf.PdfFont italicFont = spdf.PdfStandardFont(spdf.PdfFontFamily.helvetica, 10, style: spdf.PdfFontStyle.italic);
+    final spdf.PdfFont titleFont = spdf.PdfStandardFont(
+      spdf.PdfFontFamily.helvetica,
+      24,
+      style: spdf.PdfFontStyle.bold,
+    );
+    final spdf.PdfFont headerFont = spdf.PdfStandardFont(
+      spdf.PdfFontFamily.helvetica,
+      14,
+      style: spdf.PdfFontStyle.bold,
+    );
+    final spdf.PdfFont bodyFont = spdf.PdfStandardFont(
+      spdf.PdfFontFamily.helvetica,
+      10,
+    );
+    final spdf.PdfFont italicFont = spdf.PdfStandardFont(
+      spdf.PdfFontFamily.helvetica,
+      10,
+      style: spdf.PdfFontStyle.italic,
+    );
 
     double y = 0;
 
     // Header
-    graphics.drawString(_nameController.text.isEmpty ? "YOUR NAME" : _nameController.text.toUpperCase(), titleFont, bounds: const Rect.fromLTWH(0, 0, 500, 30));
+    graphics.drawString(
+      _nameController.text.isEmpty
+          ? "YOUR NAME"
+          : _nameController.text.toUpperCase(),
+      titleFont,
+      bounds: const Rect.fromLTWH(0, 0, 500, 30),
+    );
     y += 30;
-    graphics.drawString(_emailController.text.isEmpty ? "email@example.com" : _emailController.text, bodyFont, bounds: Rect.fromLTWH(0, y, 500, 20));
+    graphics.drawString(
+      _emailController.text.isEmpty
+          ? "email@example.com"
+          : _emailController.text,
+      bodyFont,
+      bounds: Rect.fromLTWH(0, y, 500, 20),
+    );
     y += 30;
-    graphics.drawLine(spdf.PdfPen(spdf.PdfColor(200, 200, 200)), Offset(0, y), Offset(500, y));
+    graphics.drawLine(
+      spdf.PdfPen(spdf.PdfColor(200, 200, 200)),
+      Offset(0, y),
+      Offset(500, y),
+    );
     y += 20;
 
     // Summary
-    graphics.drawString("PROFESSIONAL SUMMARY", headerFont, bounds: Rect.fromLTWH(0, y, 500, 20));
+    graphics.drawString(
+      "PROFESSIONAL SUMMARY",
+      headerFont,
+      bounds: Rect.fromLTWH(0, y, 500, 20),
+    );
     y += 20;
-    graphics.drawString(_summaryController.text.isEmpty ? "No summary provided." : _summaryController.text, bodyFont, bounds: Rect.fromLTWH(0, y, 500, 80));
+    graphics.drawString(
+      _summaryController.text.isEmpty
+          ? "No summary provided."
+          : _summaryController.text,
+      bodyFont,
+      bounds: Rect.fromLTWH(0, y, 500, 80),
+    );
     y += 80;
 
     // Experience
     if (_job1Title.text.isNotEmpty || _job2Title.text.isNotEmpty) {
-      graphics.drawString("PROFESSIONAL EXPERIENCE", headerFont, bounds: Rect.fromLTWH(0, y, 500, 20));
+      graphics.drawString(
+        "PROFESSIONAL EXPERIENCE",
+        headerFont,
+        bounds: Rect.fromLTWH(0, y, 500, 20),
+      );
       y += 25;
       if (_job1Title.text.isNotEmpty) {
-        graphics.drawString(_job1Title.text, headerFont, bounds: Rect.fromLTWH(0, y, 500, 15));
+        graphics.drawString(
+          _job1Title.text,
+          headerFont,
+          bounds: Rect.fromLTWH(0, y, 500, 15),
+        );
         y += 15;
-        graphics.drawString(_job1Company.text, bodyFont, bounds: Rect.fromLTWH(0, y, 500, 15));
+        graphics.drawString(
+          _job1Company.text,
+          bodyFont,
+          bounds: Rect.fromLTWH(0, y, 500, 15),
+        );
         y += 15;
-        graphics.drawString(_job1Desc.text, bodyFont, bounds: Rect.fromLTWH(0, y, 500, 40));
+        graphics.drawString(
+          _job1Desc.text,
+          bodyFont,
+          bounds: Rect.fromLTWH(0, y, 500, 40),
+        );
         y += 50;
       }
     }
 
     // Education
     if (_edu1School.text.isNotEmpty) {
-      graphics.drawString("EDUCATION", headerFont, bounds: Rect.fromLTWH(0, y, 500, 20));
+      graphics.drawString(
+        "EDUCATION",
+        headerFont,
+        bounds: Rect.fromLTWH(0, y, 500, 20),
+      );
       y += 25;
-      graphics.drawString(_edu1School.text, headerFont, bounds: Rect.fromLTWH(0, y, 500, 15));
+      graphics.drawString(
+        _edu1School.text,
+        headerFont,
+        bounds: Rect.fromLTWH(0, y, 500, 15),
+      );
       y += 15;
-      graphics.drawString("${_edu1Degree.text} | ${_edu1Year.text}", italicFont, bounds: Rect.fromLTWH(0, y, 500, 15));
+      graphics.drawString(
+        "${_edu1Degree.text} | ${_edu1Year.text}",
+        italicFont,
+        bounds: Rect.fromLTWH(0, y, 500, 15),
+      );
       y += 30;
     }
 
     // Skills
-    graphics.drawString("SKILLS", headerFont, bounds: Rect.fromLTWH(0, y, 500, 20));
+    graphics.drawString(
+      "SKILLS",
+      headerFont,
+      bounds: Rect.fromLTWH(0, y, 500, 20),
+    );
     y += 20;
-    graphics.drawString(_skillsController.text.isEmpty ? "No skills added." : _skillsController.text, bodyFont, bounds: Rect.fromLTWH(0, y, 500, 40));
+    graphics.drawString(
+      _skillsController.text.isEmpty
+          ? "No skills added."
+          : _skillsController.text,
+      bodyFont,
+      bounds: Rect.fromLTWH(0, y, 500, 40),
+    );
 
     try {
       final List<int> bytes = await document.save();
       document.dispose();
-      
-      await _saveAndLaunch(bytes, 'Resume_${_nameController.text.replaceAll(' ', '_')}.pdf', 'application/pdf');
+
+      await _saveAndLaunch(
+        bytes,
+        'Resume_${_nameController.text.replaceAll(' ', '_')}.pdf',
+        'application/pdf',
+      );
     } catch (e) {
       debugPrint("PDF Generation Error: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to generate PDF: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to generate PDF: $e")));
       }
     }
   }
 
   Future<void> _generateDOCX() async {
     final doc = sdocx.docx();
-    
+
     // Header
-    doc.h1(_nameController.text.isEmpty ? "YOUR NAME" : _nameController.text.toUpperCase());
-    doc.p(_emailController.text.isEmpty ? "email@example.com" : _emailController.text);
-    
+    doc.h1(
+      _nameController.text.isEmpty
+          ? "YOUR NAME"
+          : _nameController.text.toUpperCase(),
+    );
+    doc.p(
+      _emailController.text.isEmpty
+          ? "email@example.com"
+          : _emailController.text,
+    );
+
     // Summary
     doc.h3("PROFESSIONAL SUMMARY");
-    doc.p(_summaryController.text.isEmpty ? "No summary provided." : _summaryController.text);
-    
+    doc.p(
+      _summaryController.text.isEmpty
+          ? "No summary provided."
+          : _summaryController.text,
+    );
+
     // Experience
     if (_job1Title.text.isNotEmpty || _job2Title.text.isNotEmpty) {
       doc.h3("PROFESSIONAL EXPERIENCE");
@@ -309,23 +428,35 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
         doc.p(_job2Desc.text);
       }
     }
-    
+
     // Education
     if (_edu1School.text.isNotEmpty) {
       doc.h3("EDUCATION");
       doc.p("${_edu1School.text} - ${_edu1Degree.text} (${_edu1Year.text})");
     }
-    
+
     // Skills
     doc.h3("SKILLS");
-    doc.p(_skillsController.text.isEmpty ? "No skills added." : _skillsController.text);
+    doc.p(
+      _skillsController.text.isEmpty
+          ? "No skills added."
+          : _skillsController.text,
+    );
 
     final docBuilt = doc.build();
     final List<int> bytes = await sdocx.DocxExporter().exportToBytes(docBuilt);
-    await _saveAndLaunch(bytes, 'Resume_${_nameController.text.replaceAll(' ', '_')}.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    await _saveAndLaunch(
+      bytes,
+      'Resume_${_nameController.text.replaceAll(' ', '_')}.docx',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
   }
 
-  Future<void> _saveAndLaunch(List<int> bytes, String fileName, String mimeType) async {
+  Future<void> _saveAndLaunch(
+    List<int> bytes,
+    String fileName,
+    String mimeType,
+  ) async {
     if (kIsWeb) {
       try {
         final String base64data = base64Encode(bytes);
@@ -338,12 +469,26 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       }
     } else {
       try {
-        final directory = await getApplicationDocumentsDirectory();
+        final directory = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
         final path = '${directory.path}/$fileName';
-        // In mobile, we'd typically use open_file or share_plus here
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("File saved to $path")));
+        final file = File(path);
+        await file.writeAsBytes(bytes);
+        
+        // 🔥 Use OpenFilex to open on mobile
+        await OpenFilex.open(path);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("OPEN_FILE: $fileName initialized."), backgroundColor: AppTheme.primaryNeon),
+          );
+        }
       } catch (e) {
-        debugPrint("Local save not supported in this environment: $e");
+        debugPrint("Local save not supported: $e");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("SAVE_FAILURE: $e"), backgroundColor: Colors.redAccent),
+          );
+        }
       }
     }
   }
@@ -352,20 +497,24 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 700;
+    
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
       body: SafeArea(
         child: Column(
           children: [
             const Navbar(),
-            _buildTopNavigation(),
+            _buildTopNavigation(isMobile),
             Expanded(
               child: AnimatedSwitcher(
                 duration: 400.ms,
                 transitionBuilder: (Widget child, Animation<double> animation) {
                   return FadeTransition(opacity: animation, child: child);
                 },
-                child: _isAnalyzerMode ? _buildAnalyzerView() : _buildBuilderView(),
+                child: _isAnalyzerMode
+                    ? _buildAnalyzerView(isMobile)
+                    : _buildBuilderView(isMobile),
               ),
             ),
           ],
@@ -374,9 +523,9 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
     );
   }
 
-  Widget _buildTopNavigation() {
+  Widget _buildTopNavigation(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      padding: EdgeInsets.symmetric(vertical: 16, horizontal: isMobile ? 12 : 24),
       decoration: const BoxDecoration(
         color: AppTheme.darkSurface,
         border: Border(bottom: BorderSide(color: AppTheme.borderSubtle)),
@@ -384,11 +533,11 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildToggleButton("ANALYZER.EXE", _isAnalyzerMode, () {
+          _buildToggleButton(isMobile ? "ANALYZER" : "ANALYZER.EXE", _isAnalyzerMode, () {
             setState(() => _isAnalyzerMode = true);
           }),
-          const SizedBox(width: 16),
-          _buildToggleButton("BUILDER.SH", !_isAnalyzerMode, () {
+          SizedBox(width: isMobile ? 8 : 16),
+          _buildToggleButton(isMobile ? "BUILDER" : "BUILDER.SH", !_isAnalyzerMode, () {
             setState(() => _isAnalyzerMode = false);
           }),
         ],
@@ -403,15 +552,22 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
         duration: 200.ms,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.primaryNeon.withOpacity(0.1) : Colors.transparent,
+          color: isActive
+              ? AppTheme.primaryNeon.withOpacity(0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
           border: Border.all(
             color: isActive ? AppTheme.primaryNeon : AppTheme.borderSubtle,
             width: isActive ? 1.5 : 1,
           ),
-          boxShadow: isActive ? [
-            BoxShadow(color: AppTheme.primaryNeon.withOpacity(0.2), blurRadius: 8)
-          ] : [],
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primaryNeon.withOpacity(0.2),
+                    blurRadius: 8,
+                  ),
+                ]
+              : [],
         ),
         child: Text(
           title,
@@ -427,16 +583,16 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
 
   // --- ANALYZER VIEW ---
 
-  Widget _buildAnalyzerView() {
+  Widget _buildAnalyzerView(bool isMobile) {
     return SingleChildScrollView(
       key: const ValueKey('analyzer'),
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildTerminalHeader("RESUME_DIAGNOSTICS"),
+          _buildTerminalHeader("RESUME_DIAGNOSTICS", isMobile: isMobile),
           const SizedBox(height: 24),
-          _buildAnalyzerCard().animate().fadeIn().slideY(begin: 0.1),
+          _buildAnalyzerCard(isMobile).animate().fadeIn().slideY(begin: 0.1),
           const SizedBox(height: 32),
           if (analysisResult != null) ...[
             _ScoreCard(
@@ -444,15 +600,28 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
               label: "INTEGRITY_INDEX",
             ).animate().scale(delay: 200.ms),
             const SizedBox(height: 32),
-            _buildCoderSection("CORE_SKILLS", analysisResult!['skills']),
-            _buildCoderSection("MISSING_DEPENDENCIES", analysisResult!['missing_skills_for_roles'], color: Colors.orangeAccent),
-            _buildCoderSection("PROJECT_MODULES", analysisResult!['projects']),
-            _buildCoderSection("OPTIMIZATION_SUGGESTIONS", analysisResult!['suggestions'], color: AppTheme.secondaryBlue),
+            _buildCoderSection("CORE_SKILLS", analysisResult!['skills'], isMobile: isMobile),
+            _buildCoderSection(
+              "MISSING_DEPENDENCIES",
+              analysisResult!['missing_skills_for_roles'],
+              color: Colors.orangeAccent,
+              isMobile: isMobile,
+            ),
+            _buildCoderSection("PROJECT_MODULES", analysisResult!['projects'], isMobile: isMobile),
+            _buildCoderSection(
+              "OPTIMIZATION_SUGGESTIONS",
+              analysisResult!['suggestions'],
+              color: AppTheme.secondaryBlue,
+              isMobile: isMobile,
+            ),
             if (analysisResult!['career_roadmap'] != null)
               _buildCoderSection(
-                "AI_CAREER_ROADMAP", 
-                (analysisResult!['career_roadmap'] as List).map((r) => "[${r['duration']}] ${r['goal']}").toList(),
+                "AI_CAREER_ROADMAP",
+                (analysisResult!['career_roadmap'] as List)
+                    .map((r) => "[${r['duration']}] ${r['goal']}")
+                    .toList(),
                 color: AppTheme.accentPurple,
+                isMobile: isMobile,
               ),
             const SizedBox(height: 24),
             if (ResumeService().resumeAnalysisUrl != null)
@@ -461,8 +630,12 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
                 icon: Icons.terminal,
                 onPressed: () {
                   final url = ResumeService().resumeAnalysisUrl!;
-                  if (kIsWeb) html.window.open(url, "_blank");
-                  else ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Link: $url")));
+                  if (kIsWeb)
+                    html.window.open(url, "_blank");
+                  else
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("Link: $url")));
                 },
                 color: Colors.orangeAccent,
               ),
@@ -472,15 +645,15 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
     );
   }
 
-  Widget _buildTerminalHeader(String title) {
+  Widget _buildTerminalHeader(String title, {bool isMobile = false}) {
     return Row(
       children: [
-        const Icon(Icons.terminal, color: AppTheme.primaryNeon, size: 20),
+        Icon(Icons.terminal, color: AppTheme.primaryNeon, size: isMobile ? 16 : 20),
         const SizedBox(width: 12),
         Text(
           title,
           style: GoogleFonts.jetBrainsMono(
-            fontSize: 18,
+            fontSize: isMobile ? 14 : 18,
             fontWeight: FontWeight.bold,
             color: Colors.white,
             letterSpacing: 1.2,
@@ -492,13 +665,13 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
     );
   }
 
-  Widget _buildCoderSection(String title, dynamic items, {Color? color}) {
+  Widget _buildCoderSection(String title, dynamic items, {Color? color, bool isMobile = false}) {
     if (items == null) return const SizedBox.shrink();
     List<dynamic> itemList = items is List ? items : [items];
-    
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(24),
+      margin: EdgeInsets.only(bottom: isMobile ? 16 : 24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: AppTheme.darkSurface,
         borderRadius: BorderRadius.circular(4),
@@ -512,7 +685,7 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
               Text(
                 "// $title",
                 style: GoogleFonts.jetBrainsMono(
-                  fontSize: 14, 
+                  fontSize: isMobile ? 12 : 14,
                   fontWeight: FontWeight.bold,
                   color: color ?? AppTheme.secondaryBlue,
                 ),
@@ -520,39 +693,70 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
             ],
           ),
           const SizedBox(height: 16),
-          ...itemList.map((e) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("> ", style: TextStyle(color: AppTheme.primaryNeon, fontWeight: FontWeight.bold, fontFamily: 'JetBrainsMono')),
-                Expanded(child: Text(e.toString(), style: const TextStyle(color: AppTheme.textMain, height: 1.4))),
-              ],
+          ...itemList.map(
+            (e) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "> ",
+                    style: TextStyle(
+                      color: AppTheme.primaryNeon,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'JetBrainsMono',
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      e.toString(),
+                      style: const TextStyle(
+                        color: AppTheme.textMain,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          )),
+          ),
         ],
       ),
     ).animate().fadeIn().slideX(begin: -0.05);
   }
 
-  Widget _buildAnalyzerCard() {
+  Widget _buildAnalyzerCard(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(isMobile ? 24 : 40),
       decoration: BoxDecoration(
         color: AppTheme.darkSurface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.primaryNeon.withOpacity(0.3), width: 1.5),
+        border: Border.all(
+          color: AppTheme.primaryNeon.withOpacity(0.3),
+          width: 1.5,
+        ),
         boxShadow: [
-          BoxShadow(color: AppTheme.primaryNeon.withOpacity(0.05), blurRadius: 20, spreadRadius: 5)
+          BoxShadow(
+            color: AppTheme.primaryNeon.withOpacity(0.05),
+            blurRadius: 20,
+            spreadRadius: 5,
+          ),
         ],
       ),
       child: Column(
         children: [
-          const Icon(Icons.cloud_upload_outlined, size: 64, color: AppTheme.primaryNeon),
+          const Icon(
+            Icons.cloud_upload_outlined,
+            size: 64,
+            color: AppTheme.primaryNeon,
+          ),
           const SizedBox(height: 24),
           Text(
             "INPUT_STREAM_REQUIRED",
-            style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.bold),
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -572,7 +776,9 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
               _buildNeonButton(
                 label: "INITIALIZE_SCAN",
                 icon: Icons.analytics_outlined,
-                onPressed: selectedFile == null || isLoading ? null : uploadFile,
+                onPressed: selectedFile == null || isLoading
+                    ? null
+                    : uploadFile,
                 isLoading: isLoading,
               ),
             ],
@@ -583,17 +789,26 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.black,
-                border: Border.all(color: AppTheme.primaryNeon.withOpacity(0.5)),
+                border: Border.all(
+                  color: AppTheme.primaryNeon.withOpacity(0.5),
+                ),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle, size: 14, color: AppTheme.primaryNeon),
+                  const Icon(
+                    Icons.check_circle,
+                    size: 14,
+                    color: AppTheme.primaryNeon,
+                  ),
                   const SizedBox(width: 10),
                   Text(
                     selectedFile!.name.toUpperCase(),
-                    style: GoogleFonts.jetBrainsMono(color: AppTheme.primaryNeon, fontSize: 12),
+                    style: GoogleFonts.jetBrainsMono(
+                      color: AppTheme.primaryNeon,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -606,15 +821,15 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
 
   // --- BUILDER VIEW ---
 
-  Widget _buildBuilderView() {
+  Widget _buildBuilderView(bool isMobile) {
     return LayoutBuilder(
       key: const ValueKey('builder'),
       builder: (context, constraints) {
         bool isMobile = constraints.maxWidth < 700;
         return SingleChildScrollView(
           padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 16 : 40, 
-            vertical: isMobile ? 24 : 48
+            horizontal: isMobile ? 16 : 40,
+            vertical: isMobile ? 24 : 48,
           ),
           child: Center(
             child: Container(
@@ -622,7 +837,7 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTerminalHeader("RESUME_CONSTRUCTOR"),
+                  _buildTerminalHeader("RESUME_CONSTRUCTOR", isMobile: isMobile),
                   const SizedBox(height: 32),
                   _buildBuilderStepper(isMobile),
                   const SizedBox(height: 48),
@@ -643,8 +858,12 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
                       else
                         const SizedBox.shrink(),
                       _buildNeonButton(
-                        label: _currentStep == 4 ? "EXECUTE_GENERATE" : "NEXT_NODE",
-                        icon: _currentStep == 4 ? Icons.rocket_launch : Icons.arrow_forward,
+                        label: _currentStep == 4
+                            ? "EXECUTE_GENERATE"
+                            : "NEXT_NODE",
+                        icon: _currentStep == 4
+                            ? Icons.rocket_launch
+                            : Icons.arrow_forward,
                         onPressed: () {
                           if (_currentStep < 4) {
                             setState(() => _currentStep++);
@@ -660,7 +879,7 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
             ),
           ),
         );
-      }
+      },
     );
   }
 
@@ -679,11 +898,18 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
             children: [
               Text(
                 "SYSTEM_SEQUENCE: STEP_0$_currentStep/04",
-                style: GoogleFonts.jetBrainsMono(color: AppTheme.primaryNeon, fontSize: 12, fontWeight: FontWeight.bold),
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppTheme.primaryNeon,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
-                "${(_currentStep/4 * 100).toInt()}% COMPLETE",
-                style: GoogleFonts.jetBrainsMono(color: AppTheme.textDim, fontSize: 11),
+                "${(_currentStep / 4 * 100).toInt()}% COMPLETE",
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppTheme.textDim,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -701,10 +927,30 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStepIndicator(1, "INIT", Icons.auto_awesome_motion, isMobile),
-              _buildStepIndicator(2, "LAYOUT", Icons.grid_view_rounded, isMobile),
-              _buildStepIndicator(3, "INPUT", Icons.edit_note_rounded, isMobile),
-              _buildStepIndicator(4, "RENDER", Icons.visibility_rounded, isMobile),
+              _buildStepIndicator(
+                1,
+                "INIT",
+                Icons.auto_awesome_motion,
+                isMobile,
+              ),
+              _buildStepIndicator(
+                2,
+                "LAYOUT",
+                Icons.grid_view_rounded,
+                isMobile,
+              ),
+              _buildStepIndicator(
+                3,
+                "INPUT",
+                Icons.edit_note_rounded,
+                isMobile,
+              ),
+              _buildStepIndicator(
+                4,
+                "RENDER",
+                Icons.visibility_rounded,
+                isMobile,
+              ),
             ],
           ),
         ],
@@ -712,10 +958,15 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
     );
   }
 
-  Widget _buildStepIndicator(int step, String title, IconData icon, bool isMobile) {
+  Widget _buildStepIndicator(
+    int step,
+    String title,
+    IconData icon,
+    bool isMobile,
+  ) {
     bool isDone = _currentStep > step;
     bool isActive = _currentStep == step;
-    
+
     return Column(
       children: [
         AnimatedContainer(
@@ -725,17 +976,24 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
             color: isActive || isDone ? AppTheme.primaryNeon : Colors.black,
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
-              color: isActive || isDone ? AppTheme.primaryNeon : AppTheme.borderSubtle,
+              color: isActive || isDone
+                  ? AppTheme.primaryNeon
+                  : AppTheme.borderSubtle,
               width: 1,
             ),
-            boxShadow: isActive ? [
-              BoxShadow(color: AppTheme.primaryNeon.withOpacity(0.3), blurRadius: 10)
-            ] : null,
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primaryNeon.withOpacity(0.3),
+                      blurRadius: 10,
+                    ),
+                  ]
+                : null,
           ),
           child: Icon(
-            icon, 
-            size: isMobile ? 18 : 22, 
-            color: isActive || isDone ? Colors.black : AppTheme.textDim
+            icon,
+            size: isMobile ? 18 : 22,
+            color: isActive || isDone ? Colors.black : AppTheme.textDim,
           ),
         ),
         if (!isMobile) ...[
@@ -755,11 +1013,16 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
 
   Widget _buildStepContent(bool isMobile) {
     switch (_currentStep) {
-      case 1: return _buildStep1Option(isMobile);
-      case 2: return _buildStep2Templates(isMobile);
-      case 3: return _buildStep3Form(isMobile);
-      case 4: return _buildStep4Preview(isMobile);
-      default: return const SizedBox.shrink();
+      case 1:
+        return _buildStep1Option(isMobile);
+      case 2:
+        return _buildStep2Templates(isMobile);
+      case 3:
+        return _buildStep3Form(isMobile);
+      case 4:
+        return _buildStep4Preview(isMobile);
+      default:
+        return const SizedBox.shrink();
     }
   }
 
@@ -771,7 +1034,10 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       children: [
         Text(
           "// INITIALIZATION_MODE",
-          style: GoogleFonts.jetBrainsMono(color: AppTheme.secondaryBlue, fontWeight: FontWeight.bold),
+          style: GoogleFonts.jetBrainsMono(
+            color: AppTheme.secondaryBlue,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 24),
         if (isMobile) ...[
@@ -798,7 +1064,8 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
               Expanded(
                 child: _buildChoiceCard(
                   title: "ZERO_STATE_BOOT",
-                  subtitle: "Initialize resume from scratch with neural assistance.",
+                  subtitle:
+                      "Initialize resume from scratch with neural assistance.",
                   icon: Icons.edit_document,
                   isSelected: _selectedOption == 1,
                   onTap: () => setState(() => _selectedOption = 1),
@@ -809,7 +1076,8 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
               Expanded(
                 child: _buildChoiceCard(
                   title: "LEGACY_IMPORT",
-                  subtitle: "Import existing profile data and optimize structure.",
+                  subtitle:
+                      "Import existing profile data and optimize structure.",
                   icon: Icons.cloud_upload_rounded,
                   isSelected: _selectedOption == 2,
                   onTap: () => setState(() => _selectedOption = 2),
@@ -837,14 +1105,22 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
                   children: [
                     Text(
                       "SOURCE_FILE_LOADER",
-                      style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.jetBrainsMono(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      selectedFile != null 
-                        ? "READY: ${selectedFile!.name}" 
-                        : "Format support: [.pdf, .docx]",
-                      style: TextStyle(color: selectedFile != null ? AppTheme.primaryNeon : AppTheme.textDim, fontSize: 12),
+                      selectedFile != null
+                          ? "READY: ${selectedFile!.name}"
+                          : "Format support: [.pdf, .docx]",
+                      style: TextStyle(
+                        color: selectedFile != null
+                            ? AppTheme.primaryNeon
+                            : AppTheme.textDim,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -875,15 +1151,22 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
         duration: 300.ms,
         padding: EdgeInsets.all(isMobile ? 24 : 32),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryNeon.withOpacity(0.05) : AppTheme.darkSurface,
+          color: isSelected
+              ? AppTheme.primaryNeon.withOpacity(0.05)
+              : AppTheme.darkSurface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? AppTheme.primaryNeon : AppTheme.borderSubtle,
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected ? [
-            BoxShadow(color: AppTheme.primaryNeon.withOpacity(0.1), blurRadius: 20)
-          ] : [],
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primaryNeon.withOpacity(0.1),
+                    blurRadius: 20,
+                  ),
+                ]
+              : [],
         ),
         child: Stack(
           children: [
@@ -896,17 +1179,29 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
                     color: isSelected ? AppTheme.primaryNeon : Colors.black,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Icon(icon, color: isSelected ? Colors.black : AppTheme.primaryNeon, size: 28),
+                  child: Icon(
+                    icon,
+                    color: isSelected ? Colors.black : AppTheme.primaryNeon,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(
                   title,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: AppTheme.textDim, height: 1.5, fontSize: 13),
+                  style: const TextStyle(
+                    color: AppTheme.textDim,
+                    height: 1.5,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -914,7 +1209,11 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
               const Positioned(
                 top: 0,
                 right: 0,
-                child: Icon(Icons.check_circle, color: AppTheme.primaryNeon, size: 24),
+                child: Icon(
+                  Icons.check_circle,
+                  color: AppTheme.primaryNeon,
+                  size: 24,
+                ),
               ),
           ],
         ),
@@ -930,7 +1229,10 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       children: [
         Text(
           "// TEMPLATE_SELECTION_ALGORITHM",
-          style: GoogleFonts.jetBrainsMono(color: AppTheme.secondaryBlue, fontWeight: FontWeight.bold),
+          style: GoogleFonts.jetBrainsMono(
+            color: AppTheme.secondaryBlue,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 32),
         GridView.builder(
@@ -954,8 +1256,12 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
 
   Widget _buildTemplateCard(int index, bool isSelected, bool isMobile) {
     final titles = ["MINIMAL_MOD", "EXEC_CORE", "CREATIVE_SYNTAX"];
-    final icons = [Icons.view_agenda_outlined, Icons.contact_page_outlined, Icons.dashboard_customize_outlined];
-    
+    final icons = [
+      Icons.view_agenda_outlined,
+      Icons.contact_page_outlined,
+      Icons.dashboard_customize_outlined,
+    ];
+
     return InkWell(
       onTap: () => setState(() => _selectedTemplateIndex = index),
       borderRadius: BorderRadius.circular(8),
@@ -968,32 +1274,53 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: isSelected ? AppTheme.primaryNeon : AppTheme.borderSubtle,
+                  color: isSelected
+                      ? AppTheme.primaryNeon
+                      : AppTheme.borderSubtle,
                   width: isSelected ? 2 : 1,
                 ),
-                boxShadow: isSelected ? [
-                  BoxShadow(color: AppTheme.primaryNeon.withOpacity(0.15), blurRadius: 15)
-                ] : [],
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.primaryNeon.withOpacity(0.15),
+                          blurRadius: 15,
+                        ),
+                      ]
+                    : [],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: Column(
                   children: [
-                    Container(height: 4, color: isSelected ? AppTheme.primaryNeon : AppTheme.borderSubtle),
+                    Container(
+                      height: 4,
+                      color: isSelected
+                          ? AppTheme.primaryNeon
+                          : AppTheme.borderSubtle,
+                    ),
                     Expanded(
                       child: Center(
-                        child: Icon(icons[index], size: isMobile ? 48 : 56, color: isSelected ? AppTheme.primaryNeon : AppTheme.textDim),
+                        child: Icon(
+                          icons[index],
+                          size: isMobile ? 48 : 56,
+                          color: isSelected
+                              ? AppTheme.primaryNeon
+                              : AppTheme.textDim,
+                        ),
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.all(12),
                       color: AppTheme.darkSurface,
                       child: Column(
-                        children: List.generate(3, (i) => Container(
-                          height: 3, 
-                          margin: const EdgeInsets.only(bottom: 6), 
-                          color: AppTheme.borderSubtle
-                        )),
+                        children: List.generate(
+                          3,
+                          (i) => Container(
+                            height: 3,
+                            margin: const EdgeInsets.only(bottom: 6),
+                            color: AppTheme.borderSubtle,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -1023,38 +1350,96 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       children: [
         Text(
           "// DATA_ENTRY_SEQUENCE",
-          style: GoogleFonts.jetBrainsMono(color: AppTheme.secondaryBlue, fontWeight: FontWeight.bold),
+          style: GoogleFonts.jetBrainsMono(
+            color: AppTheme.secondaryBlue,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 32),
         _buildFormSection("USER_IDENTITY", [
-          _buildCoderTextField("ID.FULL_NAME", "Awaiting input...", controller: _nameController),
-          _buildCoderTextField("ID.EMAIL_ADDR", "user@example.sh", controller: _emailController),
+          _buildCoderTextField(
+            "ID.FULL_NAME",
+            "Awaiting input...",
+            controller: _nameController,
+          ),
+          _buildCoderTextField(
+            "ID.EMAIL_ADDR",
+            "user@example.sh",
+            controller: _emailController,
+          ),
         ]),
         const SizedBox(height: 40),
         _buildFormSection("PROFESSIONAL_SYNOPSIS", [
-          _buildCoderTextField("SYNOPSIS_BUFFER", "String summary = ...", maxLines: 4, controller: _summaryController),
+          _buildCoderTextField(
+            "SYNOPSIS_BUFFER",
+            "String summary = ...",
+            maxLines: 4,
+            controller: _summaryController,
+          ),
         ]),
         const SizedBox(height: 40),
         _buildFormSection("EXPERIENCE_BLOCK_01", [
-          _buildCoderTextField("EXP1.TITLE", "Role title...", controller: _job1Title),
-          _buildCoderTextField("EXP1.COMPANY", "Organization...", controller: _job1Company),
-          _buildCoderTextField("EXP1.LOG", "Execution details...", maxLines: 3, controller: _job1Desc),
+          _buildCoderTextField(
+            "EXP1.TITLE",
+            "Role title...",
+            controller: _job1Title,
+          ),
+          _buildCoderTextField(
+            "EXP1.COMPANY",
+            "Organization...",
+            controller: _job1Company,
+          ),
+          _buildCoderTextField(
+            "EXP1.LOG",
+            "Execution details...",
+            maxLines: 3,
+            controller: _job1Desc,
+          ),
         ]),
         const SizedBox(height: 40),
         _buildFormSection("EXPERIENCE_BLOCK_02", [
-          _buildCoderTextField("EXP2.TITLE", "Role title...", controller: _job2Title),
-          _buildCoderTextField("EXP2.COMPANY", "Organization...", controller: _job2Company),
-          _buildCoderTextField("EXP2.LOG", "Execution details...", maxLines: 3, controller: _job2Desc),
+          _buildCoderTextField(
+            "EXP2.TITLE",
+            "Role title...",
+            controller: _job2Title,
+          ),
+          _buildCoderTextField(
+            "EXP2.COMPANY",
+            "Organization...",
+            controller: _job2Company,
+          ),
+          _buildCoderTextField(
+            "EXP2.LOG",
+            "Execution details...",
+            maxLines: 3,
+            controller: _job2Desc,
+          ),
         ]),
         const SizedBox(height: 40),
         _buildFormSection("EDUCATION_INDEX", [
-          _buildCoderTextField("EDU.INSTITUTION", "University...", controller: _edu1School),
-          _buildCoderTextField("EDU.DEGREE", "Degree type...", controller: _edu1Degree),
-          _buildCoderTextField("EDU.TIMESTAMP", "Year...", controller: _edu1Year),
+          _buildCoderTextField(
+            "EDU.INSTITUTION",
+            "University...",
+            controller: _edu1School,
+          ),
+          _buildCoderTextField(
+            "EDU.DEGREE",
+            "Degree type...",
+            controller: _edu1Degree,
+          ),
+          _buildCoderTextField(
+            "EDU.TIMESTAMP",
+            "Year...",
+            controller: _edu1Year,
+          ),
         ]),
         const SizedBox(height: 40),
         _buildFormSection("SKILLS_ARRAY", [
-          _buildCoderTextField("SKILLS.CSV", "Flutter, Dart, Python...", controller: _skillsController),
+          _buildCoderTextField(
+            "SKILLS.CSV",
+            "Flutter, Dart, Python...",
+            controller: _skillsController,
+          ),
         ]),
       ],
     );
@@ -1066,9 +1451,20 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       children: [
         Row(
           children: [
-            const Icon(Icons.subdirectory_arrow_right, size: 14, color: AppTheme.primaryNeon),
+            const Icon(
+              Icons.subdirectory_arrow_right,
+              size: 14,
+              color: AppTheme.primaryNeon,
+            ),
             const SizedBox(width: 10),
-            Text(title, style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(
+              title,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 20),
@@ -1080,13 +1476,24 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
     );
   }
 
-  Widget _buildCoderTextField(String label, String hint, {int maxLines = 1, TextEditingController? controller}) {
+  Widget _buildCoderTextField(
+    String label,
+    String hint, {
+    int maxLines = 1,
+    TextEditingController? controller,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: GoogleFonts.jetBrainsMono(fontSize: 11, color: AppTheme.textDim)),
+          Text(
+            label,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 11,
+              color: AppTheme.textDim,
+            ),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: controller,
@@ -1098,9 +1505,18 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
               hintStyle: TextStyle(color: AppTheme.textDim.withOpacity(0.3)),
               filled: true,
               fillColor: Colors.black,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: AppTheme.borderSubtle)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: AppTheme.borderSubtle)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: AppTheme.primaryNeon)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: const BorderSide(color: AppTheme.borderSubtle),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: const BorderSide(color: AppTheme.borderSubtle),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: const BorderSide(color: AppTheme.primaryNeon),
+              ),
               contentPadding: const EdgeInsets.all(16),
             ),
           ),
@@ -1117,7 +1533,10 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       children: [
         Text(
           "// RENDER_OUTPUT_PREVIEW",
-          style: GoogleFonts.jetBrainsMono(color: AppTheme.secondaryBlue, fontWeight: FontWeight.bold),
+          style: GoogleFonts.jetBrainsMono(
+            color: AppTheme.secondaryBlue,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 32),
         Container(
@@ -1127,7 +1546,11 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
             color: Colors.white, // Classic paper look for preview
             borderRadius: BorderRadius.circular(4),
             boxShadow: [
-              BoxShadow(color: AppTheme.primaryNeon.withOpacity(0.2), blurRadius: 30, spreadRadius: -10)
+              BoxShadow(
+                color: AppTheme.primaryNeon.withOpacity(0.2),
+                blurRadius: 30,
+                spreadRadius: -10,
+              ),
             ],
           ),
           child: Column(
@@ -1135,40 +1558,87 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
             children: [
               // Preview Content
               Text(
-                _nameController.text.isEmpty ? "YOUR NAME" : _nameController.text.toUpperCase(),
-                style: GoogleFonts.inter(fontSize: isMobile ? 24 : 32, fontWeight: FontWeight.bold, color: Colors.black, letterSpacing: 1.2),
+                _nameController.text.isEmpty
+                    ? "YOUR NAME"
+                    : _nameController.text.toUpperCase(),
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 24 : 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  letterSpacing: 1.2,
+                ),
               ),
               Text(
-                _emailController.text.isEmpty ? "email@example.com" : _emailController.text,
+                _emailController.text.isEmpty
+                    ? "email@example.com"
+                    : _emailController.text,
                 style: GoogleFonts.inter(color: Colors.grey[700], fontSize: 14),
               ),
               const Divider(height: 40, thickness: 1, color: Colors.black),
-              
-              _buildPreviewSection("SUMMARY", _summaryController.text.isEmpty ? "Enter summary..." : _summaryController.text),
-              
+
+              _buildPreviewSection(
+                "SUMMARY",
+                _summaryController.text.isEmpty
+                    ? "Enter summary..."
+                    : _summaryController.text,
+              ),
+
               if (_job1Title.text.isNotEmpty || _job2Title.text.isNotEmpty) ...[
                 _buildPreviewSectionHeader("EXPERIENCE"),
-                if (_job1Title.text.isNotEmpty) _buildPreviewExperience(_job1Title.text, _job1Company.text, _job1Desc.text),
+                if (_job1Title.text.isNotEmpty)
+                  _buildPreviewExperience(
+                    _job1Title.text,
+                    _job1Company.text,
+                    _job1Desc.text,
+                  ),
                 if (_job2Title.text.isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  _buildPreviewExperience(_job2Title.text, _job2Company.text, _job2Desc.text),
+                  _buildPreviewExperience(
+                    _job2Title.text,
+                    _job2Company.text,
+                    _job2Desc.text,
+                  ),
                 ],
               ],
- 
+
               if (_edu1School.text.isNotEmpty) ...[
                 _buildPreviewSectionHeader("EDUCATION"),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: Text(_edu1School.text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black))),
-                    Text(_edu1Year.text, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                    Expanded(
+                      child: Text(
+                        _edu1School.text,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _edu1Year.text,
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    ),
                   ],
                 ),
-                Text(_edu1Degree.text, style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.grey[800])),
+                Text(
+                  _edu1Degree.text,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey[800],
+                  ),
+                ),
               ],
-              
+
               const SizedBox(height: 32),
-              _buildPreviewSection("SKILLS", _skillsController.text.isEmpty ? "Add skills..." : _skillsController.text),
+              _buildPreviewSection(
+                "SKILLS",
+                _skillsController.text.isEmpty
+                    ? "Add skills..."
+                    : _skillsController.text,
+              ),
             ],
           ),
         ),
@@ -1207,7 +1677,15 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
   Widget _buildPreviewSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 24, bottom: 12),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black, letterSpacing: 1)),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: Colors.black,
+          letterSpacing: 1,
+        ),
+      ),
     );
   }
 
@@ -1216,7 +1694,14 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildPreviewSectionHeader(title),
-        Text(content, style: const TextStyle(height: 1.5, fontSize: 13, color: Colors.black87)),
+        Text(
+          content,
+          style: const TextStyle(
+            height: 1.5,
+            fontSize: 13,
+            color: Colors.black87,
+          ),
+        ),
       ],
     );
   }
@@ -1225,10 +1710,31 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
-        Text(company, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6366F1))),
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Colors.black,
+          ),
+        ),
+        Text(
+          company,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF6366F1),
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(desc, style: const TextStyle(fontSize: 13, height: 1.5, color: Colors.black87)),
+        Text(
+          desc,
+          style: const TextStyle(
+            fontSize: 13,
+            height: 1.5,
+            color: Colors.black87,
+          ),
+        ),
       ],
     );
   }
@@ -1243,9 +1749,16 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
   }) {
     return ElevatedButton.icon(
       onPressed: onPressed,
-      icon: isLoading 
-        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-        : Icon(icon, size: 18),
+      icon: isLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.black,
+              ),
+            )
+          : Icon(icon, size: 18),
       label: Text(label),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.primaryNeon,
@@ -1285,13 +1798,23 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
       width: double.infinity,
       decoration: BoxDecoration(
         boxShadow: [
-          BoxShadow(color: color.withOpacity(0.2), blurRadius: 15, spreadRadius: -5)
+          BoxShadow(
+            color: color.withOpacity(0.2),
+            blurRadius: 15,
+            spreadRadius: -5,
+          ),
         ],
       ),
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon, size: 20),
-        label: Text(label, style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold)),
+        label: Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.black,
@@ -1345,7 +1868,10 @@ class _ScoreCard extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: GoogleFonts.jetBrainsMono(color: AppTheme.textDim, fontSize: 12),
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppTheme.textDim,
+                  fontSize: 12,
+                ),
               ),
               const Icon(Icons.memory, color: AppTheme.primaryNeon, size: 16),
             ],
@@ -1364,7 +1890,14 @@ class _ScoreCard extends StatelessWidget {
               ),
               const Padding(
                 padding: EdgeInsets.only(bottom: 12, left: 4),
-                child: Text("%", style: TextStyle(color: AppTheme.primaryNeon, fontSize: 24, fontWeight: FontWeight.bold)),
+                child: Text(
+                  "%",
+                  style: TextStyle(
+                    color: AppTheme.primaryNeon,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               const Spacer(),
               _buildHealthIndicator(score),
@@ -1385,14 +1918,23 @@ class _ScoreCard extends StatelessWidget {
                 duration: 1000.ms,
                 curve: Curves.easeOutCubic,
                 height: 8,
-                width: MediaQuery.of(context).size.width * (score / 100) * 0.7, // Rough approx for demo
+                width:
+                    MediaQuery.of(context).size.width *
+                    (score / 100) *
+                    0.7, // Rough approx for demo
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppTheme.primaryNeon.withOpacity(0.5), AppTheme.primaryNeon],
+                    colors: [
+                      AppTheme.primaryNeon.withOpacity(0.5),
+                      AppTheme.primaryNeon,
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(4),
                   boxShadow: [
-                    BoxShadow(color: AppTheme.primaryNeon.withOpacity(0.3), blurRadius: 10)
+                    BoxShadow(
+                      color: AppTheme.primaryNeon.withOpacity(0.3),
+                      blurRadius: 10,
+                    ),
                   ],
                 ),
               ),
@@ -1404,9 +1946,17 @@ class _ScoreCard extends StatelessWidget {
   }
 
   Widget _buildHealthIndicator(int score) {
-    String status = score > 80 ? "OPTIMIZED" : score > 50 ? "FUNCTIONAL" : "CRITICAL";
-    Color color = score > 80 ? AppTheme.primaryNeon : score > 50 ? Colors.orangeAccent : Colors.redAccent;
-    
+    String status = score > 80
+        ? "OPTIMIZED"
+        : score > 50
+        ? "FUNCTIONAL"
+        : "CRITICAL";
+    Color color = score > 80
+        ? AppTheme.primaryNeon
+        : score > 50
+        ? Colors.orangeAccent
+        : Colors.redAccent;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -1416,7 +1966,11 @@ class _ScoreCard extends StatelessWidget {
       ),
       child: Text(
         status,
-        style: GoogleFonts.jetBrainsMono(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+        style: GoogleFonts.jetBrainsMono(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

@@ -29,7 +29,7 @@ class AppTheme {
         onSurface: textMain,
         onBackground: textMain,
       ),
-      
+
       textTheme: TextTheme(
         displayLarge: GoogleFonts.jetBrainsMono(
           fontSize: 32,
@@ -47,14 +47,8 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           color: accentPurple,
         ),
-        bodyLarge: GoogleFonts.inter(
-          fontSize: 16,
-          color: textMain,
-        ),
-        bodyMedium: GoogleFonts.inter(
-          fontSize: 14,
-          color: textDim,
-        ),
+        bodyLarge: GoogleFonts.inter(fontSize: 16, color: textMain),
+        bodyMedium: GoogleFonts.inter(fontSize: 14, color: textDim),
         labelLarge: GoogleFonts.jetBrainsMono(
           fontSize: 14,
           fontWeight: FontWeight.bold,
@@ -76,13 +70,9 @@ class AppTheme {
           backgroundColor: primaryNeon,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
-          textStyle: GoogleFonts.jetBrainsMono(
-            fontWeight: FontWeight.bold,
-          ),
+          textStyle: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold),
         ),
       ),
 
@@ -102,7 +92,10 @@ class AppTheme {
           borderSide: const BorderSide(color: primaryNeon, width: 2),
         ),
         hintStyle: GoogleFonts.inter(color: textDim),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
 
       floatingActionButtonTheme: const FloatingActionButtonThemeData(

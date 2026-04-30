@@ -36,21 +36,29 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
     final role = ResumeService().selectedRole;
     final skills = ResumeService().extractedSkills;
     final company = ResumeService().selectedCompany;
-    
+
     if (role == null) {
       setState(() {
-        _messages.add({"role": "model", "text": "### SYSTEM_HALT: TARGET_ROLE_NULL\n\nPlease initialize target objectives in the Career Path module first."});
+        _messages.add({
+          "role": "model",
+          "text":
+              "### SYSTEM_HALT: TARGET_ROLE_NULL\n\nPlease initialize target objectives in the Career Path module first.",
+        });
       });
       return;
     }
 
     final targetContext = company != null ? "$role at $company" : role;
-    final prompt = "You are a strict but helpful technical interviewer. I am applying for the role of '$targetContext' and have the following skills: ${skills.join(', ')}. Please start the interview by asking me an opening technical question tailored to this role and company expectations. Do not provide the answer. Wait for my response.";
-    
+    final prompt =
+        "You are a strict but helpful technical interviewer. I am applying for the role of '$targetContext' and have the following skills: ${skills.join(', ')}. Please start the interview by asking me an opening technical question tailored to this role and company expectations. Do not provide the answer. Wait for my response.";
+
     await _sendMessageToAI(prompt, isSystemPrompt: true);
   }
 
-  Future<void> _sendMessageToAI(String text, {bool isSystemPrompt = false}) async {
+  Future<void> _sendMessageToAI(
+    String text, {
+    bool isSystemPrompt = false,
+  }) async {
     setState(() => _isLoading = true);
 
     try {
@@ -60,11 +68,11 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
         body: jsonEncode({
           "message": text,
           "history": _messages.map((m) {
-             return {
-               "role": m["role"] == "user" ? "user" : "model",
-               "parts": [m["text"]]
-             };
-          }).toList()
+            return {
+              "role": m["role"] == "user" ? "user" : "model",
+              "parts": [m["text"]],
+            };
+          }).toList(),
         }),
       );
 
@@ -76,13 +84,19 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
         _scrollToBottom();
       } else {
         setState(() {
-          _messages.add({"role": "model", "text": "ERROR_PROTOCOL_FAILURE: Interviewer node offline."});
+          _messages.add({
+            "role": "model",
+            "text": "ERROR_PROTOCOL_FAILURE: Interviewer node offline.",
+          });
         });
       }
     } catch (e) {
-       setState(() {
-          _messages.add({"role": "model", "text": "CONNECTION_LOST: Diagnostic stream interrupted."});
-       });
+      setState(() {
+        _messages.add({
+          "role": "model",
+          "text": "CONNECTION_LOST: Diagnostic stream interrupted.",
+        });
+      });
     } finally {
       setState(() => _isLoading = false);
     }
@@ -102,7 +116,7 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
 
   void _handleSend() {
     if (_controller.text.trim().isEmpty) return;
-    
+
     final text = _controller.text;
     setState(() {
       _messages.add({"role": "user", "text": text});
@@ -128,7 +142,7 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
           });
         },
       );
-      
+
       if (available) {
         setState(() {
           _isListening = true;
@@ -138,7 +152,9 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
           onResult: (val) {
             setState(() {
               _controller.text = val.recognizedWords;
-              _controller.selection = TextSelection.fromPosition(TextPosition(offset: _controller.text.length));
+              _controller.selection = TextSelection.fromPosition(
+                TextPosition(offset: _controller.text.length),
+              );
             });
           },
           onSoundLevelChange: (level) => setState(() => _level = level),
@@ -159,66 +175,96 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
-      body: Column(
-        children: [
-          const Navbar(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("INTERVIEW_PREP.EXE", style: theme.textTheme.labelLarge).animate().fadeIn().slideX(),
-                Text("Technical Performance Simulator", style: theme.textTheme.displayMedium).animate().fadeIn(delay: 200.ms).slideX(),
-              ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Navbar(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "INTERVIEW_PREP.EXE",
+                    style: theme.textTheme.labelLarge,
+                  ).animate().fadeIn().slideX(),
+                  Text(
+                    "Technical Performance Simulator",
+                    style: theme.textTheme.displayMedium,
+                  ).animate().fadeIn(delay: 200.ms).slideX(),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(24),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final isUser = _messages[index]["role"] == "user";
-                return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 12),
-                    padding: const EdgeInsets.all(20),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
-                    decoration: BoxDecoration(
-                      color: isUser ? AppTheme.primaryNeon.withOpacity(0.05) : AppTheme.darkSurface,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: isUser ? AppTheme.primaryNeon.withOpacity(0.3) : AppTheme.borderSubtle),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isUser ? "USER_INPUT" : "INTERVIEWER_NODE",
-                          style: TextStyle(
-                            color: isUser ? AppTheme.primaryNeon : AppTheme.secondaryBlue,
-                            fontFamily: 'JetBrainsMono',
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(24),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final isUser = _messages[index]["role"] == "user";
+                  return Align(
+                    alignment: isUser
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.all(20),
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isUser
+                            ? AppTheme.primaryNeon.withOpacity(0.05)
+                            : AppTheme.darkSurface,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: isUser
+                              ? AppTheme.primaryNeon.withOpacity(0.3)
+                              : AppTheme.borderSubtle,
                         ),
-                        const SizedBox(height: 12),
-                        MarkdownBody(
-                          data: _messages[index]["text"]!,
-                          styleSheet: MarkdownStyleSheet(
-                            p: TextStyle(color: isUser ? Colors.white : AppTheme.textMain, height: 1.5, fontSize: 14),
-                            code: const TextStyle(backgroundColor: AppTheme.darkBg, color: AppTheme.secondaryBlue, fontFamily: 'JetBrainsMono'),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isUser ? "USER_INPUT" : "INTERVIEWER_NODE",
+                            style: TextStyle(
+                              color: isUser
+                                  ? AppTheme.primaryNeon
+                                  : AppTheme.secondaryBlue,
+                              fontFamily: 'JetBrainsMono',
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn().slideY(begin: 0.05),
-                );
-              },
+                          const SizedBox(height: 12),
+                          MarkdownBody(
+                            data: _messages[index]["text"]!,
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                color: isUser
+                                    ? Colors.white
+                                    : AppTheme.textMain,
+                                height: 1.5,
+                                fontSize: 14,
+                              ),
+                              code: const TextStyle(
+                                backgroundColor: AppTheme.darkBg,
+                                color: AppTheme.secondaryBlue,
+                                fontFamily: 'JetBrainsMono',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ).animate().fadeIn().slideY(begin: 0.05),
+                  );
+                },
+              ),
             ),
-          ),
-          _buildInputArea(theme),
-        ],
+            _buildInputArea(theme),
+          ],
+        ),
       ),
     );
   }
@@ -232,24 +278,32 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
       ),
       child: Column(
         children: [
-          if (_isListening) 
+          if (_isListening)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Row(
                 children: [
-                   Text(_speechStatus, style: const TextStyle(color: AppTheme.primaryNeon, fontSize: 10, fontFamily: 'JetBrainsMono', fontWeight: FontWeight.bold)),
-                   const SizedBox(width: 16),
-                   Expanded(
-                     child: ClipRRect(
-                       borderRadius: BorderRadius.circular(2),
-                       child: LinearProgressIndicator(
-                         value: (_level + 2) / 10,
-                         backgroundColor: AppTheme.darkBg,
-                         color: AppTheme.primaryNeon,
-                         minHeight: 2,
-                       ),
-                     ),
-                   ),
+                  Text(
+                    _speechStatus,
+                    style: const TextStyle(
+                      color: AppTheme.primaryNeon,
+                      fontSize: 10,
+                      fontFamily: 'JetBrainsMono',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        value: (_level + 2) / 10,
+                        backgroundColor: AppTheme.darkBg,
+                        color: AppTheme.primaryNeon,
+                        minHeight: 2,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -262,14 +316,20 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
                   decoration: const InputDecoration(
                     hintText: "TRANSMIT RESPONSE...",
                     hintStyle: TextStyle(color: AppTheme.textDim, fontSize: 12),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                   ),
                   onSubmitted: (_) => _handleSend(),
                 ),
               ),
               const SizedBox(width: 16),
               IconButton(
-                icon: Icon(_isListening ? Icons.mic : Icons.mic_none, color: _isListening ? AppTheme.primaryNeon : AppTheme.textDim),
+                icon: Icon(
+                  _isListening ? Icons.mic : Icons.mic_none,
+                  color: _isListening ? AppTheme.primaryNeon : AppTheme.textDim,
+                ),
                 onPressed: _isLoading ? null : _listen,
               ),
               const SizedBox(width: 8),
@@ -280,11 +340,18 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                   ),
-                  child: _isLoading 
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Icon(Icons.send_rounded, size: 20),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.send_rounded, size: 20),
                 ),
-              )
+              ),
             ],
           ),
         ],

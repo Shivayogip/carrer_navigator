@@ -48,30 +48,39 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/api/contact'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'message': message,
-        }),
+        body: jsonEncode({'email': email, 'message': message}),
       );
 
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Transmission successful. We will respond via the secure channel.")),
+            const SnackBar(
+              content: Text(
+                "Transmission successful. We will respond via the secure channel.",
+              ),
+            ),
           );
           _messageController.clear();
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Transmission failure. Check terminal logs.")),
+            SnackBar(
+              content: Text(
+                "Transmission failure (Status: ${response.statusCode}). Check terminal logs.",
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Network error. Secure connection could not be established.")),
+          const SnackBar(
+            content: Text(
+              "Network error. Secure connection could not be established.",
+            ),
+          ),
         );
       }
     } finally {
@@ -84,105 +93,130 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
-      body: Column(
-        children: [
-          const Navbar(),
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header matching dashboard style
-                      Text(
-                        "CONTACT_CHANNEL.INF",
-                        style: theme.textTheme.labelLarge,
-                      ).animate().fadeIn().slideX(),
-                      Text(
-                        "Technical Feedback & Support",
-                        style: theme.textTheme.displayMedium,
-                      ).animate().fadeIn(delay: 200.ms).slideX(),
-                      
-                      const SizedBox(height: 40),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Navbar(),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header matching dashboard style
+                        Text(
+                          "CONTACT_CHANNEL.INF",
+                          style: theme.textTheme.labelLarge,
+                        ).animate().fadeIn().slideX(),
+                        Text(
+                          "Technical Feedback & Support",
+                          style: theme.textTheme.displayMedium,
+                        ).animate().fadeIn(delay: 200.ms).slideX(),
 
-                      Container(
-                        width: 550,
-                        padding: const EdgeInsets.all(40),
-                        decoration: BoxDecoration(
-                          color: AppTheme.darkSurface,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: AppTheme.borderSubtle, width: 1),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.terminal, size: 80, color: AppTheme.primaryNeon),
-                            const SizedBox(height: 32),
-                            Text(
-                              "INITIATE_COMMUNICATION",
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              "Submit technical feedback or request system assistance.",
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: 40),
-                            
-                            TextField(
-                              controller: _emailController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                labelText: "SENDER_EMAIL",
-                                prefixIcon: Icon(Icons.alternate_email, size: 18),
+                        const SizedBox(height: 40),
+
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 550),
+                          child: Container(
+                            padding: const EdgeInsets.all(32),
+                            decoration: BoxDecoration(
+                              color: AppTheme.darkSurface,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: AppTheme.borderSubtle,
+                                width: 1,
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 20),
-                            TextField(
-                              controller: _messageController,
-                              maxLines: 5,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                labelText: "ENCRYPTED_MESSAGE",
-                                alignLabelWithHint: true,
-                              ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.terminal,
+                                  size: 80,
+                                  color: AppTheme.primaryNeon,
+                                ),
+                                const SizedBox(height: 32),
+                                Text(
+                                  "INITIATE_COMMUNICATION",
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.titleLarge,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  "Submit technical feedback or request system assistance.",
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                                const SizedBox(height: 40),
+
+                                TextField(
+                                  controller: _emailController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: const InputDecoration(
+                                    labelText: "SENDER_EMAIL",
+                                    prefixIcon: Icon(
+                                      Icons.alternate_email,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                TextField(
+                                  controller: _messageController,
+                                  maxLines: 5,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: const InputDecoration(
+                                    labelText: "ENCRYPTED_MESSAGE",
+                                    alignLabelWithHint: true,
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 55,
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading ? null : _sendMessage,
+                                    child: _isLoading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Text(
+                                            "EXECUTE_SEND",
+                                            style: TextStyle(letterSpacing: 2),
+                                          ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 32),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 55,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _sendMessage,
-                                child: _isLoading 
-                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Text("EXECUTE_SEND", style: TextStyle(letterSpacing: 2)),
-                              ),
-                            )
-                          ],
-                        ),
-                      ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
-                    ],
+                          ),
+                        ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
-
-

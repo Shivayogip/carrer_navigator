@@ -26,7 +26,8 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
   @override
   void initState() {
     super.initState();
-    if (ResumeService().roadmapMarkdown != null && ResumeService().roadmapMarkdown!.isNotEmpty) {
+    if (ResumeService().roadmapMarkdown != null &&
+        ResumeService().roadmapMarkdown!.isNotEmpty) {
       _roadmapMarkdown = ResumeService().roadmapMarkdown;
     } else {
       _generateRoadmap();
@@ -37,29 +38,28 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     final rs = ResumeService();
     final role = rs.selectedRole;
     final company = rs.selectedCompany;
-    
+
     if (role == null) {
       if (mounted) {
         setState(() {
-          _roadmapMarkdown = "### SYSTEM_HALT: TARGET_ROLE_NULL\n\nInitialize target objectives in **Career Trajectory** module before roadmap generation.";
+          _roadmapMarkdown =
+              "### SYSTEM_HALT: TARGET_ROLE_NULL\n\nInitialize target objectives in **Career Trajectory** module before roadmap generation.";
         });
       }
       return;
     }
 
     setState(() => _isLoading = true);
-    
+
     final roleContext = company != null ? "$role at $company" : role;
-    final prompt = "Generate a comprehensive, expert-level step-by-step career roadmap to become a $roleContext. Include specific technologies, project milestones, and interview focus nodes. Format the response entirely in beautifully structured Markdown for a developer dashboard.";
-    
+    final prompt =
+        "Generate a comprehensive, expert-level step-by-step career roadmap to become a $roleContext. Include specific technologies, project milestones, and interview focus nodes. Format the response entirely in beautifully structured Markdown for a developer dashboard.";
+
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/api/ai/chat'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "message": prompt,
-          "history": []
-        }),
+        body: jsonEncode({"message": prompt, "history": []}),
       );
 
       if (response.statusCode == 200) {
@@ -72,11 +72,21 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
           rs.saveData(auth);
         }
       } else {
-        final errorMsg = jsonDecode(response.body)['error'] ?? "Error ${response.statusCode}";
-        if (mounted) setState(() => _roadmapMarkdown = "ERROR_PROTOCOL_FAILURE: Remote host error $errorMsg");
+        final errorMsg =
+            jsonDecode(response.body)['error'] ??
+            "Error ${response.statusCode}";
+        if (mounted)
+          setState(
+            () => _roadmapMarkdown =
+                "ERROR_PROTOCOL_FAILURE: Remote host error $errorMsg",
+          );
       }
     } catch (e) {
-      if (mounted) setState(() => _roadmapMarkdown = "CONNECTION_LOST: Diagnostic stream interrupted. $e");
+      if (mounted)
+        setState(
+          () => _roadmapMarkdown =
+              "CONNECTION_LOST: Diagnostic stream interrupted. $e",
+        );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -85,14 +95,17 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
   Future<void> _downloadPdf() async {
     final rs = ResumeService();
     final content = rs.roadmapMarkdown;
-    
+
     if (content != null && content.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("GENERATING_PREMIUM_PDF (via Backend)..."), backgroundColor: AppTheme.secondaryBlue),
+        const SnackBar(
+          content: Text("GENERATING_PREMIUM_PDF (via Backend)..."),
+          backgroundColor: AppTheme.secondaryBlue,
+        ),
       );
-      
+
       final success = await rs.exportPdfDirect("Career Roadmap", content);
-      
+
       if (!success && mounted) {
         // Fallback to local if backend fails
         await rs.generateLocalPdf("Career Roadmap", content);
@@ -109,75 +122,119 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
-      body: Column(
-        children: [
-          const Navbar(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "CAREER_ROADMAP.INF",
-                    style: theme.textTheme.labelLarge,
-                  ).animate().fadeIn().slideX(),
-                  Text(
-                    "Algorithmic Evolution Path",
-                    style: theme.textTheme.displayMedium,
-                  ).animate().fadeIn(delay: 200.ms).slideX(),
-                  const SizedBox(height: 32),
-                  
-                  _buildControls(theme).animate().fadeIn(delay: 400.ms),
-                  const SizedBox(height: 32),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Navbar(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "CAREER_ROADMAP.INF",
+                      style: theme.textTheme.labelLarge,
+                    ).animate().fadeIn().slideX(),
+                    Text(
+                      "Algorithmic Evolution Path",
+                      style: theme.textTheme.displayMedium,
+                    ).animate().fadeIn(delay: 200.ms).slideX(),
+                    const SizedBox(height: 32),
 
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: AppTheme.darkSurface,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: AppTheme.borderSubtle),
-                    ),
-                    child: _isLoading 
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(80.0),
-                              child: Column(
-                                children: [
-                                  CircularProgressIndicator(color: AppTheme.primaryNeon),
-                                  SizedBox(height: 24),
-                                  Text("ARCHITECTING_FUTURE_NODES...", style: TextStyle(color: AppTheme.textDim, fontFamily: 'JetBrainsMono', fontSize: 12)),
-                                ],
+                    _buildControls(theme).animate().fadeIn(delay: 400.ms),
+                    const SizedBox(height: 32),
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: AppTheme.darkSurface,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppTheme.borderSubtle),
+                      ),
+                      child: _isLoading
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(80.0),
+                                child: Column(
+                                  children: [
+                                    CircularProgressIndicator(
+                                      color: AppTheme.primaryNeon,
+                                    ),
+                                    SizedBox(height: 24),
+                                    Text(
+                                      "ARCHITECTING_FUTURE_NODES...",
+                                      style: TextStyle(
+                                        color: AppTheme.textDim,
+                                        fontFamily: 'JetBrainsMono',
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : _roadmapMarkdown != null
+                          ? MarkdownBody(
+                              data: _roadmapMarkdown!,
+                              styleSheet: MarkdownStyleSheet(
+                                p: theme.textTheme.bodyMedium?.copyWith(
+                                  height: 1.6,
+                                  color: AppTheme.textMain,
+                                ),
+                                h1: theme.textTheme.titleLarge?.copyWith(
+                                  color: AppTheme.primaryNeon,
+                                ),
+                                h2: theme.textTheme.titleLarge?.copyWith(
+                                  color: AppTheme.secondaryBlue,
+                                  fontSize: 18,
+                                  height: 2,
+                                ),
+                                h3: theme.textTheme.titleLarge?.copyWith(
+                                  color: AppTheme.accentPurple,
+                                  fontSize: 16,
+                                ),
+                                code: const TextStyle(
+                                  backgroundColor: AppTheme.darkBg,
+                                  color: AppTheme.secondaryBlue,
+                                  fontFamily: 'JetBrainsMono',
+                                ),
+                                listBullet: const TextStyle(
+                                  color: AppTheme.primaryNeon,
+                                ),
+                              ),
+                            )
+                          : const Center(
+                              child: Text(
+                                "Awaiting initialization signal.",
+                                style: TextStyle(color: AppTheme.textDim),
                               ),
                             ),
-                          )
-                        : _roadmapMarkdown != null 
-                            ? MarkdownBody(
-                                data: _roadmapMarkdown!,
-                                styleSheet: MarkdownStyleSheet(
-                                  p: theme.textTheme.bodyMedium?.copyWith(height: 1.6, color: AppTheme.textMain),
-                                  h1: theme.textTheme.titleLarge?.copyWith(color: AppTheme.primaryNeon),
-                                  h2: theme.textTheme.titleLarge?.copyWith(color: AppTheme.secondaryBlue, fontSize: 18, height: 2),
-                                  h3: theme.textTheme.titleLarge?.copyWith(color: AppTheme.accentPurple, fontSize: 16),
-                                  code: const TextStyle(backgroundColor: AppTheme.darkBg, color: AppTheme.secondaryBlue, fontFamily: 'JetBrainsMono'),
-                                  listBullet: const TextStyle(color: AppTheme.primaryNeon),
-                                ),
-                              ) 
-                            : const Center(child: Text("Awaiting initialization signal.", style: TextStyle(color: AppTheme.textDim))),
-                  ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1),
-                ],
+                    ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: _roadmapMarkdown != null && !_isLoading
           ? FloatingActionButton.extended(
               onPressed: _downloadPdf,
               icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: Text(ResumeService().roadmapUrl != null ? "DOWNLOAD_PDF" : "EXPORT_PDF", 
-                          style: const TextStyle(fontFamily: 'JetBrainsMono', fontWeight: FontWeight.bold)),
+              label: Text(
+                ResumeService().roadmapUrl != null
+                    ? "DOWNLOAD_PDF"
+                    : "EXPORT_PDF",
+                style: const TextStyle(
+                  fontFamily: 'JetBrainsMono',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             )
           : null,
     );
@@ -199,10 +256,22 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("TARGET_SYSTEM", style: TextStyle(color: AppTheme.textDim, fontSize: 10, fontFamily: 'JetBrainsMono')),
+                const Text(
+                  "TARGET_SYSTEM",
+                  style: TextStyle(
+                    color: AppTheme.textDim,
+                    fontSize: 10,
+                    fontFamily: 'JetBrainsMono',
+                  ),
+                ),
                 Text(
                   ResumeService().selectedRole?.toUpperCase() ?? "NULL",
-                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'JetBrainsMono'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'JetBrainsMono',
+                  ),
                 ),
               ],
             ),
@@ -213,7 +282,9 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
             label: const Text("REGENERATE"),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: AppTheme.borderSubtle),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
           ),
         ],

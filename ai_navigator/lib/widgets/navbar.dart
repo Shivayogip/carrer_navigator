@@ -65,12 +65,19 @@ class _NavbarState extends State<Navbar> {
                   // LOGO
                   GestureDetector(
                     onTap: () => Navigator.pushAndRemoveUntil(
-                      context, fadeRoute(const DashboardScreen()), (route) => false),
+                      context,
+                      fadeRoute(const DashboardScreen()),
+                      (route) => false,
+                    ),
                     child: MouseRegion(
                       cursor: SystemMouseCursors.click,
                       child: Row(
                         children: [
-                          Icon(Icons.terminal, color: theme.colorScheme.primary, size: 28),
+                          Icon(
+                            Icons.terminal,
+                            color: theme.colorScheme.primary,
+                            size: 28,
+                          ),
                           const SizedBox(width: 12),
                           Text(
                             "NAVIGATOR.AI",
@@ -104,18 +111,27 @@ class _NavbarState extends State<Navbar> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         navItem("HOME", 0, () {
-          Navigator.pushAndRemoveUntil(context, fadeRoute(const DashboardScreen()), (route) => false);
+          Navigator.pushAndRemoveUntil(
+            context,
+            fadeRoute(const DashboardScreen()),
+            (route) => false,
+          );
         }),
         featuresDropdown(),
         navItem("SUPPORT", 2, () {
           Navigator.push(context, fadeRoute(const ContactUsScreen()));
         }),
         const SizedBox(width: 20),
-        
+
         if (authService.user != null) ...[
           IconButton(
-            onPressed: () => Navigator.push(context, fadeRoute(const ProfileScreen())),
-            icon: Icon(Icons.account_circle_outlined, color: theme.colorScheme.secondary, size: 28),
+            onPressed: () =>
+                Navigator.push(context, fadeRoute(const ProfileScreen())),
+            icon: Icon(
+              Icons.account_circle_outlined,
+              color: theme.colorScheme.secondary,
+              size: 28,
+            ),
             tooltip: "Profile",
           ),
           const SizedBox(width: 12),
@@ -123,7 +139,11 @@ class _NavbarState extends State<Navbar> {
             onPressed: () async {
               await authService.signOut();
               if (mounted) {
-                Navigator.pushAndRemoveUntil(context, fadeRoute(const LoginScreen()), (route) => false);
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  fadeRoute(const LoginScreen()),
+                  (route) => false,
+                );
               }
             },
             icon: const Icon(Icons.power_settings_new, size: 18),
@@ -131,7 +151,9 @@ class _NavbarState extends State<Navbar> {
             style: OutlinedButton.styleFrom(
               foregroundColor: theme.colorScheme.error,
               side: BorderSide(color: theme.colorScheme.error.withOpacity(0.5)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
           ),
         ],
@@ -151,20 +173,54 @@ class _NavbarState extends State<Navbar> {
       ),
       onSelected: (value) async {
         switch (value) {
-          case 0: Navigator.pushAndRemoveUntil(context, fadeRoute(const DashboardScreen()), (route) => false); break;
-          case 1: Navigator.push(context, fadeRoute(const ContactUsScreen())); break;
-          case 2: Navigator.push(context, fadeRoute(const ProfileScreen())); break;
-          case 3: 
+          case 0:
+            Navigator.pushAndRemoveUntil(
+              context,
+              fadeRoute(const DashboardScreen()),
+              (route) => false,
+            );
+            break;
+          case 1:
+            Navigator.push(context, fadeRoute(const ContactUsScreen()));
+            break;
+          case 2:
+            Navigator.push(context, fadeRoute(const ProfileScreen()));
+            break;
+          case 3:
             await authService.signOut();
-            if (mounted) Navigator.pushAndRemoveUntil(context, fadeRoute(const LoginScreen()), (route) => false);
+            if (mounted)
+              Navigator.pushAndRemoveUntil(
+                context,
+                fadeRoute(const LoginScreen()),
+                (route) => false,
+              );
             break;
         }
       },
       itemBuilder: (context) => [
-        PopupMenuItem(value: 0, child: Text("HOME", style: theme.textTheme.labelLarge)),
-        PopupMenuItem(value: 1, child: Text("SUPPORT", style: theme.textTheme.labelLarge)),
-        if (authService.user != null) PopupMenuItem(value: 2, child: Text("PROFILE", style: theme.textTheme.labelLarge)),
-        if (authService.user != null) PopupMenuItem(value: 3, child: Text("EXIT", style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.error))),
+        PopupMenuItem(
+          value: 0,
+          child: Text("HOME", style: theme.textTheme.labelLarge),
+        ),
+        PopupMenuItem(
+          value: 1,
+          child: Text("SUPPORT", style: theme.textTheme.labelLarge),
+        ),
+        if (authService.user != null)
+          PopupMenuItem(
+            value: 2,
+            child: Text("PROFILE", style: theme.textTheme.labelLarge),
+          ),
+        if (authService.user != null)
+          PopupMenuItem(
+            value: 3,
+            child: Text(
+              "EXIT",
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -194,7 +250,9 @@ class _NavbarState extends State<Navbar> {
           child: Text(
             text,
             style: theme.textTheme.labelLarge?.copyWith(
-              color: isHover ? theme.colorScheme.primary : theme.textTheme.bodyMedium?.color,
+              color: isHover
+                  ? theme.colorScheme.primary
+                  : theme.textTheme.bodyMedium?.color,
             ),
           ),
         ),
@@ -219,15 +277,33 @@ class _NavbarState extends State<Navbar> {
         onSelected: (value) {
           Widget? page;
           switch (value) {
-            case "Resume Intelligence": page = const ResumeIntelligence(); break;
-            case "Career Path Prediction": page = const CareerPathScreen(); break;
-            case "Skill Gap Analysis": page = const SkillGapScreen(); break;
-            case "AI Roadmap Generator": page = const RoadmapScreen(); break;
-            case "Project Recommendation": page = const ProjectRecommendationScreen(); break;
-            case "GitHub Analyzer": page = const GithubAnalyzerScreen(); break;
-            case "Resume Scoring": page = const ResumeScoringScreen(); break;
-            case "Interview Prep": page = const InterviewPrepScreen(); break;
-            case "Progress Tracker": page = const ProgressTrackerScreen(); break;
+            case "Resume Intelligence":
+              page = const ResumeIntelligence();
+              break;
+            case "Career Path Prediction":
+              page = const CareerPathScreen();
+              break;
+            case "Skill Gap Analysis":
+              page = const SkillGapScreen();
+              break;
+            case "AI Roadmap Generator":
+              page = const RoadmapScreen();
+              break;
+            case "Project Recommendation":
+              page = const ProjectRecommendationScreen();
+              break;
+            case "GitHub Analyzer":
+              page = const GithubAnalyzerScreen();
+              break;
+            case "Resume Scoring":
+              page = const ResumeScoringScreen();
+              break;
+            case "Interview Prep":
+              page = const InterviewPrepScreen();
+              break;
+            case "Progress Tracker":
+              page = const ProgressTrackerScreen();
+              break;
           }
 
           if (page != null) {
@@ -248,30 +324,73 @@ class _NavbarState extends State<Navbar> {
           ),
           child: Row(
             children: [
-              Text("MODULES", style: theme.textTheme.labelLarge?.copyWith(
-                color: isHover ? theme.colorScheme.primary : theme.textTheme.bodyMedium?.color,
-              )),
+              Text(
+                "MODULES",
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: isHover
+                      ? theme.colorScheme.primary
+                      : theme.textTheme.bodyMedium?.color,
+                ),
+              ),
               const SizedBox(width: 4),
-              Icon(Icons.keyboard_arrow_down, size: 16, color: isHover ? theme.colorScheme.primary : theme.textTheme.bodyMedium?.color),
+              Icon(
+                Icons.keyboard_arrow_down,
+                size: 16,
+                color: isHover
+                    ? theme.colorScheme.primary
+                    : theme.textTheme.bodyMedium?.color,
+              ),
             ],
           ),
         ),
         itemBuilder: (context) => [
-          _buildPopupItem("RESUME_INTEL", Icons.psychology, "Resume Intelligence"),
-          _buildPopupItem("CAREER_PATH", Icons.auto_graph, "Career Path Prediction"),
-          _buildPopupItem("SKILL_GAP", Icons.analytics_outlined, "Skill Gap Analysis"),
-          _buildPopupItem("ROADMAP_GEN", Icons.map_outlined, "AI Roadmap Generator"),
-          _buildPopupItem("PROJ_REC", Icons.lightbulb_outline, "Project Recommendation"),
+          _buildPopupItem(
+            "RESUME_INTEL",
+            Icons.psychology,
+            "Resume Intelligence",
+          ),
+          _buildPopupItem(
+            "CAREER_PATH",
+            Icons.auto_graph,
+            "Career Path Prediction",
+          ),
+          _buildPopupItem(
+            "SKILL_GAP",
+            Icons.analytics_outlined,
+            "Skill Gap Analysis",
+          ),
+          _buildPopupItem(
+            "ROADMAP_GEN",
+            Icons.map_outlined,
+            "AI Roadmap Generator",
+          ),
+          _buildPopupItem(
+            "PROJ_REC",
+            Icons.lightbulb_outline,
+            "Project Recommendation",
+          ),
           _buildPopupItem("GIT_STATS", Icons.code, "GitHub Analyzer"),
-          _buildPopupItem("SCORE_CARD", Icons.assessment_outlined, "Resume Scoring"),
+          _buildPopupItem(
+            "SCORE_CARD",
+            Icons.assessment_outlined,
+            "Resume Scoring",
+          ),
           _buildPopupItem("INT_PREP", Icons.mic_none, "Interview Prep"),
-          _buildPopupItem("PROG_TRACK", Icons.track_changes, "Progress Tracker"),
+          _buildPopupItem(
+            "PROG_TRACK",
+            Icons.track_changes,
+            "Progress Tracker",
+          ),
         ],
       ),
     );
   }
 
-  PopupMenuItem<String> _buildPopupItem(String code, IconData icon, String value) {
+  PopupMenuItem<String> _buildPopupItem(
+    String code,
+    IconData icon,
+    String value,
+  ) {
     final theme = Theme.of(context);
     return PopupMenuItem(
       value: value,

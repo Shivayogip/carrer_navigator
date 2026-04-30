@@ -11,14 +11,13 @@ import 'services/notification_service.dart';
 import 'services/resume_service.dart';
 import 'theme/app_theme.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   if (!kIsWeb) {
     await NotificationService().init();
   }
-  
+
   try {
     if (kIsWeb) {
       await Firebase.initializeApp(
@@ -70,7 +69,7 @@ class MyApp extends StatelessWidget {
     if (!onboardingCompleted) {
       return const OnboardingScreen();
     }
-    
+
     return Consumer<AuthService>(
       builder: (context, auth, _) {
         if (auth.user != null) {

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'api_config.dart';
+import 'resume_service.dart';
 
 String get _baseUrl => ApiConfig.baseUrl;
 
@@ -80,7 +81,7 @@ class AuthService with ChangeNotifier {
     if (data['id'] == null || data['email'] == null) {
       throw Exception('Server returned invalid user data');
     }
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
     await prefs.setString('auth_email', data['email']);
@@ -92,8 +93,11 @@ class AuthService with ChangeNotifier {
     await prefs.setString('auth_year', data['year'] ?? '');
     await prefs.setString('auth_interest', data['interest_field'] ?? '');
     await prefs.setInt('auth_streak', data['current_streak'] ?? 0);
-    await prefs.setStringList('auth_badges', List<String>.from(data['badges'] ?? []));
-    
+    await prefs.setStringList(
+      'auth_badges',
+      List<String>.from(data['badges'] ?? []),
+    );
+
     _token = token;
     _user = User(
       uid: data['id'],
@@ -113,20 +117,22 @@ class AuthService with ChangeNotifier {
   Future<bool> signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId: kIsWeb ? '397856270364-fi8t8plifl90r06vq4kbrdipcmoeurp2.apps.googleusercontent.com' : null,
+        clientId: kIsWeb
+            ? '397856270364-fi8t8plifl90r06vq4kbrdipcmoeurp2.apps.googleusercontent.com'
+            : null,
         scopes: ['email', 'profile', 'openid'],
         forceCodeForRefreshToken: true,
       );
-      
+
       GoogleSignInAccount? googleUser;
-      
+
       // Attempt silent sign in first on web
       if (kIsWeb) {
         googleUser = await googleSignIn.signInSilently();
       }
-      
+
       googleUser ??= await googleSignIn.signIn();
-      
+
       if (googleUser == null) {
         debugPrint("Google Sign-In: User canceled.");
         return false;
@@ -137,11 +143,13 @@ class AuthService with ChangeNotifier {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "email": googleUser.email,
-          "name": googleUser.displayName ?? googleUser.email.split('@')[0]
+          "name": googleUser.displayName ?? googleUser.email.split('@')[0],
         }),
       );
-      
+
       if (response.statusCode == 200) {
+        // 🔥 WIPE ALL PREVIOUS SESSION DATA
+        ResumeService().clearAll();
         final data = jsonDecode(response.body);
         await _saveUser(data['user'], data['token']);
         return true;
@@ -152,20 +160,22 @@ class AuthService with ChangeNotifier {
     return false;
   }
 
-  Future<bool> signUpWithEmail(String email, String password, String name) async {
+  Future<bool> signUpWithEmail(
+    String email,
+    String password,
+    String name,
+  ) async {
     _authError = null;
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/auth/signup'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "email": email,
-          "password": password,
-          "name": name
-        }),
+        body: jsonEncode({"email": email, "password": password, "name": name}),
       );
 
       if (response.statusCode == 200) {
+        // 🔥 WIPE ALL PREVIOUS SESSION DATA
+        ResumeService().clearAll();
         final data = jsonDecode(response.body);
         await _saveUser(data['user'], data['token']);
         return true;
@@ -191,16 +201,15 @@ class AuthService with ChangeNotifier {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "email": email,
-          "password": password
-        }),
+        body: jsonEncode({"email": email, "password": password}),
       );
 
       if (response.statusCode == 200) {
-         final data = jsonDecode(response.body);
-         await _saveUser(data['user'], data['token']);
-         return true;
+        // 🔥 WIPE ALL PREVIOUS SESSION DATA
+        ResumeService().clearAll();
+        final data = jsonDecode(response.body);
+        await _saveUser(data['user'], data['token']);
+        return true;
       } else {
         try {
           final data = jsonDecode(response.body);
@@ -217,6 +226,9 @@ class AuthService with ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    // 🔥 WIPE ALL RESUME DATA ON LOGOUT
+    ResumeService().clearAll();
+    
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('auth_email');
@@ -238,7 +250,7 @@ class AuthService with ChangeNotifier {
         },
         body: jsonEncode(data),
       );
-      
+
       if (response.statusCode == 200) {
         // Refresh local data
         await fetchUserData();
@@ -250,7 +262,10 @@ class AuthService with ChangeNotifier {
     return false;
   }
 
-  Future<String?> changePassword(String currentPassword, String newPassword) async {
+  Future<String?> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     if (_token == null) return "Not logged in";
     try {
       final response = await http.post(
@@ -261,10 +276,10 @@ class AuthService with ChangeNotifier {
         },
         body: jsonEncode({
           "current_password": currentPassword,
-          "new_password": newPassword
+          "new_password": newPassword,
         }),
       );
-      
+
       final result = jsonDecode(response.body);
       if (response.statusCode == 200) {
         return null; // Success
@@ -283,7 +298,7 @@ class AuthService with ChangeNotifier {
         Uri.parse('$_baseUrl/api/user/data'),
         headers: {'Authorization': 'Bearer $_token'},
       );
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         // Map backend field names if they differ slightly
@@ -317,7 +332,7 @@ class AuthService with ChangeNotifier {
         },
         body: jsonEncode({"task_desc": description}),
       );
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['user_data'] != null) {
@@ -341,7 +356,7 @@ class AuthService with ChangeNotifier {
         Uri.parse('$_baseUrl/api/user/tasks'),
         headers: {'Authorization': 'Bearer $_token'},
       );
-      
+
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }

@@ -12,7 +12,8 @@ class StatsSection extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
 
-          child: Wrap( // ✅ responsive (important)
+          child: Wrap(
+            // ✅ responsive (important)
             spacing: 20,
             runSpacing: 20,
             alignment: WrapAlignment.center,
@@ -57,10 +58,7 @@ class StatsSection extends StatelessWidget {
 
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.black54,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.black54, fontSize: 14),
           ),
         ],
       ),

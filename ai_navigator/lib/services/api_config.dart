@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   // 🚀 UPDATED: Points to your live Render backend
-  static const String _prodBaseUrl = 'https://carrer-navigator-api.onrender.com'; 
+  static const String _prodBaseUrl =
+      'https://carrer-navigator-api.onrender.com';
 
   static String get baseUrl {
     if (kReleaseMode) {

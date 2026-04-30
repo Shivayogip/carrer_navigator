@@ -20,7 +20,7 @@ class HomeScreen extends StatelessWidget {
                 SizedBox(height: 80),
 
                 // 🔥 UPDATED HERO SECTION
-                HeroSection(), 
+                HeroSection(),
 
                 StatsSection(),
                 JourneySection(),
@@ -29,12 +29,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
 
-          const Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Navbar(),
-          ),
+          const Positioned(top: 0, left: 0, right: 0, child: Navbar()),
         ],
       ),
 
@@ -43,9 +38,7 @@ class HomeScreen extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const AiAssistantScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const AiAssistantScreen()),
           );
         },
         icon: const Icon(Icons.auto_awesome),

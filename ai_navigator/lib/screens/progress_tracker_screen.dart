@@ -27,31 +27,42 @@ class _ProgressTrackerScreenState extends State<ProgressTrackerScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
-      body: Column(
-        children: [
-          const Navbar(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("TRAINING_TRACKER.EXE", style: theme.textTheme.labelLarge).animate().fadeIn().slideX(),
-                  Text("Skill Acquisition Log", style: theme.textTheme.displayMedium).animate().fadeIn(delay: 200.ms).slideX(),
-                  const SizedBox(height: 32),
-                  
-                  if (_missingSkills.isEmpty)
-                    _buildEmptyState()
-                  else
-                    _buildTrackerView(theme),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Navbar(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "TRAINING_TRACKER.EXE",
+                      style: theme.textTheme.labelLarge,
+                    ).animate().fadeIn().slideX(),
+                    Text(
+                      "Skill Acquisition Log",
+                      style: theme.textTheme.displayMedium,
+                    ).animate().fadeIn(delay: 200.ms).slideX(),
+                    const SizedBox(height: 32),
+
+                    if (_missingSkills.isEmpty)
+                      _buildEmptyState()
+                    else
+                      _buildTrackerView(theme),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -73,7 +84,12 @@ class _ProgressTrackerScreenState extends State<ProgressTrackerScreen> {
             Text(
               "SIGNAL_LOST: ZERO_DELTA_DETECTED\n\nPlease visit Skill Gap Analysis to identify technical nodes for acquisition.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.textDim, fontFamily: 'JetBrainsMono', height: 1.5, fontSize: 14),
+              style: TextStyle(
+                color: AppTheme.textDim,
+                fontFamily: 'JetBrainsMono',
+                height: 1.5,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -104,7 +120,12 @@ class _ProgressTrackerScreenState extends State<ProgressTrackerScreen> {
                   Expanded(
                     child: Text(
                       "CURRENT_TARGET: ${ResumeService().selectedRole?.toUpperCase()}",
-                      style: const TextStyle(color: Colors.white, fontFamily: 'JetBrainsMono', fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'JetBrainsMono',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],
@@ -123,8 +144,22 @@ class _ProgressTrackerScreenState extends State<ProgressTrackerScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("PROGRESS: ${(progressPercent * 100).toInt()}%", style: const TextStyle(color: AppTheme.textDim, fontFamily: 'JetBrainsMono', fontSize: 12)),
-                  Text("$completed/${_missingSkills.length} NODES_SYCHRONIZED", style: const TextStyle(color: AppTheme.primaryNeon, fontFamily: 'JetBrainsMono', fontSize: 12)),
+                  Text(
+                    "PROGRESS: ${(progressPercent * 100).toInt()}%",
+                    style: const TextStyle(
+                      color: AppTheme.textDim,
+                      fontFamily: 'JetBrainsMono',
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    "$completed/${_missingSkills.length} NODES_SYCHRONIZED",
+                    style: const TextStyle(
+                      color: AppTheme.primaryNeon,
+                      fontFamily: 'JetBrainsMono',
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -141,9 +176,15 @@ class _ProgressTrackerScreenState extends State<ProgressTrackerScreen> {
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: isChecked ? AppTheme.primaryNeon.withOpacity(0.05) : AppTheme.darkSurface,
+                color: isChecked
+                    ? AppTheme.primaryNeon.withOpacity(0.05)
+                    : AppTheme.darkSurface,
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: isChecked ? AppTheme.primaryNeon.withOpacity(0.3) : AppTheme.borderSubtle),
+                border: Border.all(
+                  color: isChecked
+                      ? AppTheme.primaryNeon.withOpacity(0.3)
+                      : AppTheme.borderSubtle,
+                ),
               ),
               child: CheckboxListTile(
                 title: Text(
@@ -158,7 +199,12 @@ class _ProgressTrackerScreenState extends State<ProgressTrackerScreen> {
                 ),
                 subtitle: Text(
                   isChecked ? "NODE_ACQUIRED" : "AWAITING_MASTERY",
-                  style: TextStyle(color: isChecked ? AppTheme.primaryNeon.withOpacity(0.5) : AppTheme.textDim, fontSize: 10),
+                  style: TextStyle(
+                    color: isChecked
+                        ? AppTheme.primaryNeon.withOpacity(0.5)
+                        : AppTheme.textDim,
+                    fontSize: 10,
+                  ),
                 ),
                 value: isChecked,
                 activeColor: AppTheme.primaryNeon,

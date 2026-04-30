@@ -17,19 +17,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<OnboardingPage> _pages = [
     OnboardingPage(
       title: "INITIALIZE_SYSTEM",
-      description: "Welcome to AI Navigator. Your companion for algorithmic career growth and neural networking.",
+      description:
+          "Welcome to AI Navigator. Your companion for algorithmic career growth and neural networking.",
       image: Icons.terminal,
       color: const Color(0xFF2EA44F),
     ),
     OnboardingPage(
       title: "RESUME_OPTIMIZER",
-      description: "Upload source code (resume) for instant diagnostic analysis and performance scoring.",
+      description:
+          "Upload source code (resume) for instant diagnostic analysis and performance scoring.",
       image: Icons.psychology,
       color: const Color(0xFF58A6FF),
     ),
     OnboardingPage(
       title: "PATH_FINDER",
-      description: "Generate career trajectories and identify missing dependency protocols to achieve target goals.",
+      description:
+          "Generate career trajectories and identify missing dependency protocols to achieve target goals.",
       image: Icons.route,
       color: const Color(0xFFBC8CFF),
     ),
@@ -87,7 +90,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         height: 4,
                         width: _currentPage == index ? 32 : 8,
                         decoration: BoxDecoration(
-                          color: _currentPage == index ? _pages[_currentPage].color : theme.dividerColor,
+                          color: _currentPage == index
+                              ? _pages[_currentPage].color
+                              : theme.dividerColor,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -106,13 +111,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             if (mounted) {
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginScreen(),
+                                ),
                               );
                             }
                           },
                           child: Text(
                             "SKIP_AUTH",
-                            style: theme.textTheme.labelLarge?.copyWith(color: theme.disabledColor),
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.disabledColor,
+                            ),
                           ),
                         ),
                         ElevatedButton(
@@ -121,7 +130,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             backgroundColor: _pages[_currentPage].color,
                           ),
                           child: Text(
-                            _currentPage == _pages.length - 1 ? "EXEC --START" : "EXEC --NEXT",
+                            _currentPage == _pages.length - 1
+                                ? "EXEC --START"
+                                : "EXEC --NEXT",
                           ),
                         ),
                       ],

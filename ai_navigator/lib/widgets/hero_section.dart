@@ -43,8 +43,7 @@ class _HeroSectionState extends State<HeroSection> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   // 👉 SAME DEFAULT COLOR BEFORE UPLOAD
-                  backgroundColor:
-                      isUploaded ? Colors.green : null,
+                  backgroundColor: isUploaded ? Colors.green : null,
                 ),
                 onPressed: () async {
                   await FileUploadService.pickAndStoreResume(context);
@@ -54,11 +53,7 @@ class _HeroSectionState extends State<HeroSection> {
                     isUploaded = true;
                   });
                 },
-                child: Text(
-                  isUploaded
-                      ? "Resume Uploaded ✅"
-                      : "Upload Resume",
-                ),
+                child: Text(isUploaded ? "Resume Uploaded ✅" : "Upload Resume"),
               ),
 
               const SizedBox(width: 10),

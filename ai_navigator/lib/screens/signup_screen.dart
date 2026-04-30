@@ -48,7 +48,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(authService.authError ?? "Registration protocol failed.")),
+            SnackBar(
+              content: Text(
+                authService.authError ?? "Registration protocol failed.",
+              ),
+            ),
           );
         }
       }
@@ -112,7 +116,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withOpacity(0.1),
                         shape: BoxShape.circle,
-                        border: Border.all(color: theme.colorScheme.primary, width: 2),
+                        border: Border.all(
+                          color: theme.colorScheme.primary,
+                          width: 2,
+                        ),
                       ),
                       child: Icon(
                         Icons.person_add_outlined,
@@ -155,7 +162,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Required';
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Invalid email';
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value))
+                          return 'Invalid email';
                         return null;
                       },
                     ),
@@ -168,8 +178,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         labelText: "PASSWORD",
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                       ),
                       validator: (value) {
@@ -187,12 +203,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         labelText: "CONFIRM_PWD",
                         prefixIcon: const Icon(Icons.lock_reset_outlined),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscureConfirmPassword =
+                                !_obscureConfirmPassword,
+                          ),
                         ),
                       ),
                       validator: (value) {
-                        if (value != _passwordController.text) return 'Mismatch';
+                        if (value != _passwordController.text)
+                          return 'Mismatch';
                         return null;
                       },
                     ),
@@ -200,7 +224,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ElevatedButton(
                       onPressed: _isLoading ? null : _onSignUp,
                       child: _isLoading
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Text("EXECUTE --REGISTER"),
                     ),
                     const SizedBox(height: 24),
@@ -209,7 +237,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         Expanded(child: Divider(color: theme.dividerColor)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text("ALT_AUTH", style: theme.textTheme.labelLarge?.copyWith(fontSize: 10)),
+                          child: Text(
+                            "ALT_AUTH",
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontSize: 10,
+                            ),
+                          ),
                         ),
                         Expanded(child: Divider(color: theme.dividerColor)),
                       ],
@@ -224,10 +257,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Existing profile?", style: theme.textTheme.bodyMedium),
+                        Text(
+                          "Existing profile?",
+                          style: theme.textTheme.bodyMedium,
+                        ),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: Text("INIT --LOGIN", style: theme.textTheme.labelLarge),
+                          child: Text(
+                            "INIT --LOGIN",
+                            style: theme.textTheme.labelLarge,
+                          ),
                         ),
                       ],
                     ),

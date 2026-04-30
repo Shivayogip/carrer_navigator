@@ -4,7 +4,11 @@ class FeatureCard extends StatelessWidget {
   final String title;
   final String description;
 
-  const FeatureCard({super.key, required this.title, required this.description});
+  const FeatureCard({
+    super.key,
+    required this.title,
+    required this.description,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +24,7 @@ class FeatureCard extends StatelessWidget {
         children: [
           Icon(Icons.star, size: 40, color: Colors.purple),
           SizedBox(height: 10),
-          Text(
-            title,
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
           SizedBox(height: 5),
           Text(description),
         ],

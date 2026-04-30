@@ -8,8 +8,10 @@ class FeaturesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text("Your Journey Starts Here",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        Text(
+          "Your Journey Starts Here",
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
 
         SizedBox(height: 20),
 
@@ -29,7 +31,7 @@ class FeaturesSection extends StatelessWidget {
               description: "Get learning plan",
             ),
           ],
-        )
+        ),
       ],
     );
   }

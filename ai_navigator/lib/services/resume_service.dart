@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'package:universal_html/html.dart' as html;
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint, ChangeNotifier;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, debugPrint, ChangeNotifier;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io' show File;
 import 'package:syncfusion_flutter_pdf/pdf.dart' as spdf;
 import 'package:flutter/material.dart' show Rect, Offset;
+import 'package:open_filex/open_filex.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ResumeService extends ChangeNotifier {
   // 🔒 Singleton (one global instance)
@@ -24,7 +27,7 @@ class ResumeService extends ChangeNotifier {
   String? selectedRole;
   String? selectedCompany;
   List<String> dynamicMissingSkills = [];
-  
+
   // 🤖 AI CONTENT
   String? careerPathMarkdown;
   String? roadmapMarkdown;
@@ -46,14 +49,17 @@ class ResumeService extends ChangeNotifier {
 
   // 🔄 SYNC FROM BACKEND DATA
   void syncFromBackend(Map<String, dynamic> data) {
-    debugPrint("ResumeService: Syncing from backend data Keys: ${data.keys.toList()}");
-    
+    debugPrint(
+      "ResumeService: Syncing from backend data Keys: ${data.keys.toList()}",
+    );
+
     // 1. Skills (Support both direct List and JSON string)
     if (data['skills'] != null) {
       try {
         if (data['skills'] is List) {
           extractedSkills = List<String>.from(data['skills']);
-        } else if (data['skills'] is String && (data['skills'] as String).isNotEmpty) {
+        } else if (data['skills'] is String &&
+            (data['skills'] as String).isNotEmpty) {
           final List<dynamic> decoded = jsonDecode(data['skills']);
           extractedSkills = decoded.map((e) => e.toString()).toList();
         }
@@ -61,13 +67,17 @@ class ResumeService extends ChangeNotifier {
       } catch (e) {
         debugPrint("ResumeService: Error syncing skills: $e");
         if (data['skills'] is String) {
-          extractedSkills = (data['skills'] as String).split(',').map((s) => s.trim()).toList();
+          extractedSkills = (data['skills'] as String)
+              .split(',')
+              .map((s) => s.trim())
+              .toList();
         }
       }
     }
 
     // 2. Resume Text
-    if (data['resume_text'] != null && (data['resume_text'] as String).isNotEmpty) {
+    if (data['resume_text'] != null &&
+        (data['resume_text'] as String).isNotEmpty) {
       resumeText = data['resume_text'];
       debugPrint("ResumeService: Synced resume text");
     }
@@ -75,7 +85,9 @@ class ResumeService extends ChangeNotifier {
     // 3. Score (Support 'score' from DB and 'resume_score' from AI)
     final dynamic score = data['score'] ?? data['resume_score'];
     if (score != null) {
-      resumeScore = (score is int) ? score : int.tryParse(score.toString()) ?? 0;
+      resumeScore = (score is int)
+          ? score
+          : int.tryParse(score.toString()) ?? 0;
       debugPrint("ResumeService: Synced score: $resumeScore");
     }
 
@@ -84,7 +96,8 @@ class ResumeService extends ChangeNotifier {
       selectedRole = data['role'];
       debugPrint("ResumeService: Synced role: $selectedRole");
     }
-    if (data['target_company'] != null && (data['target_company'] as String).isNotEmpty) {
+    if (data['target_company'] != null &&
+        (data['target_company'] as String).isNotEmpty) {
       selectedCompany = data['target_company'];
     }
 
@@ -111,7 +124,8 @@ class ResumeService extends ChangeNotifier {
     }
 
     // 6. Missing Skills (Support 'missing_skills' from DB and 'missing_skills_for_roles' from AI)
-    final dynamic missing = data['missing_skills'] ?? data['missing_skills_for_roles'];
+    final dynamic missing =
+        data['missing_skills'] ?? data['missing_skills_for_roles'];
     if (missing != null) {
       try {
         if (missing is List) {
@@ -120,21 +134,28 @@ class ResumeService extends ChangeNotifier {
           final List<dynamic> decoded = jsonDecode(missing);
           dynamicMissingSkills = decoded.map((e) => e.toString()).toList();
         }
-        debugPrint("ResumeService: Synced ${dynamicMissingSkills.length} missing skills");
+        debugPrint(
+          "ResumeService: Synced ${dynamicMissingSkills.length} missing skills",
+        );
       } catch (e) {
         if (missing is String) {
-          dynamicMissingSkills = missing.split(',').map((s) => s.trim()).toList();
+          dynamicMissingSkills = missing
+              .split(',')
+              .map((s) => s.trim())
+              .toList();
         }
       }
     }
 
     // 7. Projects
-    if (data['project_recommendations'] != null && (data['project_recommendations'] as String).isNotEmpty) {
+    if (data['project_recommendations'] != null &&
+        (data['project_recommendations'] as String).isNotEmpty) {
       projectsMarkdown = data['project_recommendations'];
       debugPrint("ResumeService: Synced project recommendations");
     }
-    
-    if (data['career_path'] != null && (data['career_path'] as String).isNotEmpty) {
+
+    if (data['career_path'] != null &&
+        (data['career_path'] as String).isNotEmpty) {
       careerPathMarkdown = data['career_path'];
     }
 
@@ -144,8 +165,10 @@ class ResumeService extends ChangeNotifier {
     roadmapUrl = data['career_roadmap_url'] ?? data['roadmap_url'];
     projectsUrl = data['project_recommendations_url'] ?? data['projects_url'];
     resumeBuilderUrl = data['resume_builder_url'];
-    
-    print("ResumeService: URLs Synced - Analysis: $resumeAnalysisUrl, Roadmap: $roadmapUrl");
+
+    print(
+      "ResumeService: URLs Synced - Analysis: $resumeAnalysisUrl, Roadmap: $roadmapUrl",
+    );
   }
 
   // 💾 SAVE TO BACKEND
@@ -158,16 +181,25 @@ class ResumeService extends ChangeNotifier {
     try {
       final Map<String, dynamic> payload = {};
       if (resumeText.isNotEmpty) payload['resume_text'] = resumeText;
-      if (extractedSkills.isNotEmpty) payload['skills'] = jsonEncode(extractedSkills);
-      if (selectedRole != null && selectedRole!.isNotEmpty) payload['role'] = selectedRole;
+      if (extractedSkills.isNotEmpty)
+        payload['skills'] = jsonEncode(extractedSkills);
+      if (selectedRole != null && selectedRole!.isNotEmpty)
+        payload['role'] = selectedRole;
       if (resumeScore != null) payload['score'] = resumeScore;
-      if (selectedCompany != null && selectedCompany!.isNotEmpty) payload['target_company'] = selectedCompany;
-      if (careerPathMarkdown != null && careerPathMarkdown!.isNotEmpty) payload['career_path'] = careerPathMarkdown;
-      if (roadmapMarkdown != null && roadmapMarkdown!.isNotEmpty) payload['career_roadmap'] = roadmapMarkdown;
-      if (projectsMarkdown != null && projectsMarkdown!.isNotEmpty) payload['project_recommendations'] = projectsMarkdown;
-      if (dynamicMissingSkills.isNotEmpty) payload['missing_skills'] = jsonEncode(dynamicMissingSkills);
+      if (selectedCompany != null && selectedCompany!.isNotEmpty)
+        payload['target_company'] = selectedCompany;
+      if (careerPathMarkdown != null && careerPathMarkdown!.isNotEmpty)
+        payload['career_path'] = careerPathMarkdown;
+      if (roadmapMarkdown != null && roadmapMarkdown!.isNotEmpty)
+        payload['career_roadmap'] = roadmapMarkdown;
+      if (projectsMarkdown != null && projectsMarkdown!.isNotEmpty)
+        payload['project_recommendations'] = projectsMarkdown;
+      if (dynamicMissingSkills.isNotEmpty)
+        payload['missing_skills'] = jsonEncode(dynamicMissingSkills);
 
-      debugPrint("ResumeService: Saving payload keys: ${payload.keys.toList()}");
+      debugPrint(
+        "ResumeService: Saving payload keys: ${payload.keys.toList()}",
+      );
 
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/api/user/save_data'),
@@ -204,18 +236,41 @@ class ResumeService extends ChangeNotifier {
     final spdf.PdfDocument document = spdf.PdfDocument();
     final spdf.PdfPage page = document.pages.add();
     final spdf.PdfGraphics graphics = page.graphics;
-    
-    final spdf.PdfFont titleFont = spdf.PdfStandardFont(spdf.PdfFontFamily.helvetica, 22, style: spdf.PdfFontStyle.bold);
-    final spdf.PdfFont h1Font = spdf.PdfStandardFont(spdf.PdfFontFamily.helvetica, 16, style: spdf.PdfFontStyle.bold);
-    final spdf.PdfFont h2Font = spdf.PdfStandardFont(spdf.PdfFontFamily.helvetica, 14, style: spdf.PdfFontStyle.bold);
-    final spdf.PdfFont bodyFont = spdf.PdfStandardFont(spdf.PdfFontFamily.helvetica, 10);
-    
+
+    final spdf.PdfFont titleFont = spdf.PdfStandardFont(
+      spdf.PdfFontFamily.helvetica,
+      22,
+      style: spdf.PdfFontStyle.bold,
+    );
+    final spdf.PdfFont h1Font = spdf.PdfStandardFont(
+      spdf.PdfFontFamily.helvetica,
+      16,
+      style: spdf.PdfFontStyle.bold,
+    );
+    final spdf.PdfFont h2Font = spdf.PdfStandardFont(
+      spdf.PdfFontFamily.helvetica,
+      14,
+      style: spdf.PdfFontStyle.bold,
+    );
+    final spdf.PdfFont bodyFont = spdf.PdfStandardFont(
+      spdf.PdfFontFamily.helvetica,
+      10,
+    );
+
     double y = 0;
 
     // Header Title
-    graphics.drawString(title.toUpperCase(), titleFont, bounds: const Rect.fromLTWH(0, 0, 500, 40));
+    graphics.drawString(
+      title.toUpperCase(),
+      titleFont,
+      bounds: const Rect.fromLTWH(0, 0, 500, 40),
+    );
     y += 45;
-    graphics.drawLine(spdf.PdfPen(spdf.PdfColor(100, 100, 100)), Offset(0, y), Offset(515, y));
+    graphics.drawLine(
+      spdf.PdfPen(spdf.PdfColor(100, 100, 100)),
+      Offset(0, y),
+      Offset(515, y),
+    );
     y += 25;
 
     // Simple Markdown Parsing
@@ -249,35 +304,55 @@ class ResumeService extends ChangeNotifier {
       } else if (line.startsWith('* ') || line.startsWith('- ')) {
         textToDraw = "• ${line.substring(2)}";
         currentHeight = 18;
-      } else if (line.isNotEmpty && line.substring(0, 1).contains(RegExp(r'[0-9]')) && line.contains('.')) {
+      } else if (line.isNotEmpty &&
+          line.substring(0, 1).contains(RegExp(r'[0-9]')) &&
+          line.contains('.')) {
         textToDraw = line;
         currentHeight = 18;
       }
 
       // Consistent drawing using PdfTextElement for automatic wrapping and height calculation
-      final spdf.PdfTextElement element = spdf.PdfTextElement(text: textToDraw, font: currentFont);
+      final spdf.PdfTextElement element = spdf.PdfTextElement(
+        text: textToDraw,
+        font: currentFont,
+      );
       final spdf.PdfLayoutResult result = element.draw(
         page: page,
-        bounds: Rect.fromLTWH(line.startsWith('* ') || line.startsWith('- ') ? 15 : 0, y, 500, 0),
+        bounds: Rect.fromLTWH(
+          line.startsWith('* ') || line.startsWith('- ') ? 15 : 0,
+          y,
+          500,
+          0,
+        ),
       )!;
-      
-      y = result.bounds.bottom + 10; // Ensure y always advances past the drawn block
-      
+
+      y =
+          result.bounds.bottom +
+          10; // Ensure y always advances past the drawn block
+
       // Basic Page Break Logic
       if (y > 720) {
         // Simple page break - just reset to top for now
         // A better implementation would add a new page
-        y = 50; 
+        y = 50;
       }
     }
 
     final List<int> bytes = await document.save();
     document.dispose();
 
-    await _saveAndLaunch(bytes, "${title.replaceAll(' ', '_')}.pdf", "application/pdf");
+    await _saveAndLaunch(
+      bytes,
+      "${title.replaceAll(' ', '_')}.pdf",
+      "application/pdf",
+    );
   }
 
-  Future<void> _saveAndLaunch(List<int> bytes, String fileName, String mimeType) async {
+  Future<void> _saveAndLaunch(
+    List<int> bytes,
+    String fileName,
+    String mimeType,
+  ) async {
     if (kIsWeb) {
       final String base64data = base64Encode(bytes);
       final String dataUrl = 'data:$mimeType;base64,$base64data';
@@ -286,9 +361,15 @@ class ResumeService extends ChangeNotifier {
         ..click();
     } else {
       try {
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/$fileName');
+        final directory = await getExternalStorageDirectory() ??
+            await getApplicationDocumentsDirectory();
+        final filePath = '${directory.path}/$fileName';
+        final file = File(filePath);
         await file.writeAsBytes(bytes);
+        debugPrint("File saved at: $filePath");
+
+        // 🔥 OPEN THE FILE AUTOMATICALLY ON MOBILE
+        await OpenFilex.open(filePath);
       } catch (e) {
         debugPrint("Local save not supported: $e");
       }
@@ -331,7 +412,7 @@ class ResumeService extends ChangeNotifier {
       "aws",
       "linux",
       "git",
-      "github"
+      "github",
     ];
 
     text = text.toLowerCase();
@@ -355,39 +436,28 @@ class ResumeService extends ChangeNotifier {
     resumeScore = null;
   }
 
-  // 📥 DIRECT EXPORT (Bypasses Storage)
-  Future<bool> exportPdfDirect(String title, String content) async {
+  // 📥 DIRECT EXPORT (Via Backend)
+  Future<bool> exportPdfDirect(String title, String markdownContent) async {
     try {
+      debugPrint("ResumeService: Requesting PDF from backend for $title");
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/api/pdf/generate'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "title": title,
-          "content": content,
-        }),
+        body: jsonEncode({"title": title, "content": markdownContent}),
       );
 
       if (response.statusCode == 200) {
         final List<int> bytes = response.bodyBytes;
         final String fileName = "${title.replaceAll(' ', '_')}.pdf";
         
-        if (kIsWeb) {
-          final String base64data = base64Encode(bytes);
-          final String dataUrl = 'data:application/pdf;base64,$base64data';
-          html.AnchorElement(href: dataUrl)
-            ..setAttribute("download", fileName)
-            ..click();
-        } else {
-          // Mobile Fallback
-          final directory = await getApplicationDocumentsDirectory();
-          final file = File('${directory.path}/$fileName');
-          await file.writeAsBytes(bytes);
-        }
+        await _saveAndLaunch(bytes, fileName, "application/pdf");
         return true;
+      } else {
+        debugPrint("ResumeService: Backend PDF error ${response.statusCode}");
+        return false;
       }
-      return false;
     } catch (e) {
-      debugPrint("ResumeService: Direct Export Error: $e");
+      debugPrint("ResumeService: Direct Export Exception: $e");
       return false;
     }
   }

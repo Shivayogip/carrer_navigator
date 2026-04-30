@@ -17,7 +17,11 @@ class _AiChatPanelState extends State<AiChatPanel> {
   final TextEditingController controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<Map<String, String>> messages = [
-    {"role": "ai", "text": "SESSION_INITIALIZED: I am Mark, your career diagnostic node. How can I assist with your trajectory today?"}
+    {
+      "role": "ai",
+      "text":
+          "SESSION_INITIALIZED: I am Mark, your career diagnostic node. How can I assist with your trajectory today?",
+    },
   ];
   bool _isLoading = false;
 
@@ -48,18 +52,20 @@ class _AiChatPanelState extends State<AiChatPanel> {
       final historyList = messages
           .sublist(0, messages.length - 1)
           .where((m) => !m["text"]!.startsWith("SESSION_INITIALIZED"))
-          .map((m) => {
-            "role": m["role"] == "user" ? "user" : "model",
-            "parts": [{"text": m["text"]}]
-          }).toList();
+          .map(
+            (m) => {
+              "role": m["role"] == "user" ? "user" : "model",
+              "parts": [
+                {"text": m["text"]},
+              ],
+            },
+          )
+          .toList();
 
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/api/ai/chat'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "message": text,
-          "history": historyList
-        }),
+        body: jsonEncode({"message": text, "history": historyList}),
       );
 
       if (response.statusCode == 200) {
@@ -72,14 +78,20 @@ class _AiChatPanelState extends State<AiChatPanel> {
       } else {
         if (mounted) {
           setState(() {
-            messages.add({"role": "ai", "text": "ERROR: PROTOCOL_INTERRUPTED. Please re-transmit."});
+            messages.add({
+              "role": "ai",
+              "text": "ERROR: PROTOCOL_INTERRUPTED. Please re-transmit.",
+            });
           });
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          messages.add({"role": "ai", "text": "ERROR: CONNECTION_FAILURE. Verify backend status."});
+          messages.add({
+            "role": "ai",
+            "text": "ERROR: CONNECTION_FAILURE. Verify backend status.",
+          });
         });
       }
     } finally {
@@ -94,8 +106,11 @@ class _AiChatPanelState extends State<AiChatPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final panelWidth = screenWidth < 400 ? screenWidth - 32 : 350.0;
+
     return Container(
-      width: 350,
+      width: panelWidth,
       height: 500,
       decoration: BoxDecoration(
         color: AppTheme.darkBg,
@@ -124,24 +139,47 @@ class _AiChatPanelState extends State<AiChatPanel> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.terminal, color: AppTheme.primaryNeon, size: 20),
+                const Icon(
+                  Icons.terminal,
+                  color: AppTheme.primaryNeon,
+                  size: 20,
+                ),
                 const SizedBox(width: 12),
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("MARK_AI.EXE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'JetBrainsMono')),
-                    Text("STATUS: ONLINE", style: TextStyle(color: AppTheme.primaryNeon, fontSize: 10, fontFamily: 'JetBrainsMono')),
+                    Text(
+                      "MARK_AI.EXE",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        fontFamily: 'JetBrainsMono',
+                      ),
+                    ),
+                    Text(
+                      "STATUS: ONLINE",
+                      style: TextStyle(
+                        color: AppTheme.primaryNeon,
+                        fontSize: 10,
+                        fontFamily: 'JetBrainsMono',
+                      ),
+                    ),
                   ],
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close, color: AppTheme.textDim, size: 20),
+                  icon: const Icon(
+                    Icons.close,
+                    color: AppTheme.textDim,
+                    size: 20,
+                  ),
                   onPressed: widget.onClose,
                 ),
               ],
             ),
           ),
-          
+
           // Messages
           Expanded(
             child: ListView.builder(
@@ -152,22 +190,39 @@ class _AiChatPanelState extends State<AiChatPanel> {
                 if (index == messages.length) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Center(child: SizedBox(width: 20, height: 2, child: LinearProgressIndicator(color: AppTheme.primaryNeon, backgroundColor: AppTheme.darkSurface))),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 2,
+                        child: LinearProgressIndicator(
+                          color: AppTheme.primaryNeon,
+                          backgroundColor: AppTheme.darkSurface,
+                        ),
+                      ),
+                    ),
                   );
                 }
-                
+
                 final msg = messages[index];
                 final isAi = msg["role"] == "ai";
-                
+
                 return Align(
-                  alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
+                  alignment: isAi
+                      ? Alignment.centerLeft
+                      : Alignment.centerRight,
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isAi ? AppTheme.darkSurface : AppTheme.primaryNeon.withOpacity(0.05),
+                      color: isAi
+                          ? AppTheme.darkSurface
+                          : AppTheme.primaryNeon.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: isAi ? AppTheme.borderSubtle : AppTheme.primaryNeon.withOpacity(0.3)),
+                      border: Border.all(
+                        color: isAi
+                            ? AppTheme.borderSubtle
+                            : AppTheme.primaryNeon.withOpacity(0.3),
+                      ),
                     ),
                     constraints: const BoxConstraints(maxWidth: 280),
                     child: Column(
@@ -175,12 +230,23 @@ class _AiChatPanelState extends State<AiChatPanel> {
                       children: [
                         Text(
                           isAi ? "AI_NODE" : "USER_INPUT",
-                          style: TextStyle(color: isAi ? AppTheme.secondaryBlue : AppTheme.primaryNeon, fontSize: 10, fontFamily: 'JetBrainsMono', fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: isAi
+                                ? AppTheme.secondaryBlue
+                                : AppTheme.primaryNeon,
+                            fontSize: 10,
+                            fontFamily: 'JetBrainsMono',
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           msg["text"]!,
-                          style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
                         ),
                       ],
                     ),
@@ -189,7 +255,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
               },
             ),
           ),
-          
+
           // Input
           Container(
             padding: const EdgeInsets.all(16),
@@ -209,10 +275,16 @@ class _AiChatPanelState extends State<AiChatPanel> {
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                     decoration: const InputDecoration(
                       hintText: "TRANSMIT MESSAGE...",
-                      hintStyle: TextStyle(color: AppTheme.textDim, fontSize: 11),
+                      hintStyle: TextStyle(
+                        color: AppTheme.textDim,
+                        fontSize: 11,
+                      ),
                       filled: true,
                       fillColor: AppTheme.darkBg,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     onSubmitted: (_) => sendMessage(),
                   ),
@@ -225,7 +297,9 @@ class _AiChatPanelState extends State<AiChatPanel> {
                     onPressed: sendMessage,
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
                     child: const Icon(Icons.send_rounded, size: 18),
                   ),
@@ -238,4 +312,3 @@ class _AiChatPanelState extends State<AiChatPanel> {
     );
   }
 }
-

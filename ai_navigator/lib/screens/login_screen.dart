@@ -101,7 +101,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withOpacity(0.1),
                         shape: BoxShape.circle,
-                        border: Border.all(color: theme.colorScheme.primary, width: 2),
+                        border: Border.all(
+                          color: theme.colorScheme.primary,
+                          width: 2,
+                        ),
                       ),
                       child: Icon(
                         Icons.terminal,
@@ -146,7 +149,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: const Icon(Icons.vpn_key_outlined),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                           ),
                           onPressed: () {
                             setState(() {
@@ -169,9 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text("EXECUTE --LOGIN"),
                     ),
@@ -181,7 +184,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(child: Divider(color: theme.dividerColor)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text("ALT_AUTH", style: theme.textTheme.labelLarge?.copyWith(fontSize: 10)),
+                          child: Text(
+                            "ALT_AUTH",
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontSize: 10,
+                            ),
+                          ),
                         ),
                         Expanded(child: Divider(color: theme.dividerColor)),
                       ],
@@ -202,12 +210,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("No account found?", style: theme.textTheme.bodyMedium),
+                        Text(
+                          "No account found?",
+                          style: theme.textTheme.bodyMedium,
+                        ),
                         TextButton(
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => const SignUpScreen(),
+                              ),
                             );
                           },
                           child: Text(

@@ -24,10 +24,7 @@ class HowItWorks extends StatelessWidget {
               children: [
                 const Text(
                   "How It Works",
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 40),
@@ -87,9 +84,7 @@ class StepItem extends StatelessWidget {
           height: 50,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [Colors.blue, Colors.purple],
-            ),
+            gradient: LinearGradient(colors: [Colors.blue, Colors.purple]),
           ),
           alignment: Alignment.center,
           child: Text(
@@ -100,10 +95,7 @@ class StepItem extends StatelessWidget {
 
         const SizedBox(height: 15),
 
-        Text(
-          text,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
+        Text(text, style: const TextStyle(fontWeight: FontWeight.w500)),
       ],
     );
   }

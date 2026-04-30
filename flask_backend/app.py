@@ -18,8 +18,8 @@ CORS(app) # Enable CORS for all routes
 # Mail Configuration
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True') == 'True'
-app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False') == 'True'
+app.config['MAIL_USE_TLS'] = str(os.getenv('MAIL_USE_TLS', 'true')).lower() == 'true'
+app.config['MAIL_USE_SSL'] = str(os.getenv('MAIL_USE_SSL', 'false')).lower() == 'true'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
@@ -105,18 +105,24 @@ def contact_form():
             
         target_email = os.getenv('CONTACT_TARGET_EMAIL', 'careernavigator28@gmail.com')
         
+        print(f"DEBUG: Preparing email from {user_email} to {target_email}")
+        
         msg = Message(
             subject=f"New Contact Form Submission from {user_email}",
             recipients=[target_email],
-            body=f"You have received a new message from your career navigator app.\n\nFrom: {user_email}\n\nMessage:\n{message_content}"
+            body=f"You have received a new message from your career navigator app.\n\nFrom: {user_email}\n\nMessage:\n{message_content}",
+            sender=app.config.get('MAIL_DEFAULT_SENDER')
         )
         
+        print(f"DEBUG: Attempting to send mail via {app.config['MAIL_SERVER']}...")
         mail.send(msg)
-        print(f"Contact email sent to {target_email}")
+        print(f"Contact email sent successfully to {target_email}")
         return jsonify({"status": "success", "message": "Email sent successfully"}), 200
     except Exception as e:
-        print(f"Error sending contact email: {e}")
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        print(f"CRITICAL: Error sending contact email: {e}")
+        return jsonify({"error": str(e), "type": type(e).__name__}), 500
 
 @app.route('/api/ai/chat', methods=['POST'], strict_slashes=False)
 def chat():

@@ -16,10 +16,7 @@ class JourneySection extends StatelessWidget {
             children: [
               const Text(
                 "Your Journey Starts Here",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 40),
@@ -103,29 +100,18 @@ class JourneyCard extends StatelessWidget {
 
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
 
           const SizedBox(height: 10),
 
-          Text(
-            description,
-            style: const TextStyle(
-              color: Colors.black54,
-            ),
-          ),
+          Text(description, style: const TextStyle(color: Colors.black54)),
 
           const SizedBox(height: 20),
 
           Text(
             "Get Started →",
-            style: TextStyle(
-              color: Colors.purple,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: Colors.purple, fontWeight: FontWeight.w500),
           ),
         ],
       ),
