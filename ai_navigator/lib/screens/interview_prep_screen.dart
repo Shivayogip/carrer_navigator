@@ -126,6 +126,17 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
     _sendMessageToAI(text);
   }
 
+  void _requestFeedback() {
+    if (_messages.isEmpty) return;
+    
+    final prompt = "Please provide constructive, strict feedback on my previous answer: how accurate was it, what did I miss, and how could I improve it? Do not ask another question yet.";
+    setState(() {
+      _messages.add({"role": "user", "text": "REQUESTING FEEDBACK ON PREVIOUS ANSWER..."});
+    });
+    _scrollToBottom();
+    _sendMessageToAI(prompt);
+  }
+
   void _listen() async {
     if (!_isListening) {
       bool available = await _speech.initialize(
@@ -278,6 +289,18 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
       ),
       child: Column(
         children: [
+          if (_messages.isNotEmpty && _messages.last["role"] == "model" && _messages.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _requestFeedback,
+                icon: const Icon(Icons.analytics_outlined, size: 16, color: AppTheme.secondaryBlue),
+                label: const Text("REQUEST_FEEDBACK", style: TextStyle(color: AppTheme.secondaryBlue, fontFamily: 'JetBrainsMono', fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppTheme.secondaryBlue),
+                ),
+              ),
+            ),
           if (_isListening)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),

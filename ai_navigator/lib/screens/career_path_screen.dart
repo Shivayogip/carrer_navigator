@@ -9,6 +9,7 @@ import '../services/api_config.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CareerPathScreen extends StatefulWidget {
   const CareerPathScreen({super.key});
@@ -42,7 +43,7 @@ class _CareerPathScreenState extends State<CareerPathScreen> {
 
     final skills = ResumeService().extractedSkills;
     final prompt =
-        "I have the following skills parsed from my resume: ${skills.join(', ')}. Please recommend 3 optimal career titles for me. Explain why they fit my skills. Format this purely in beautifully structured Markdown for a developer dashboard.";
+        "I have the following skills parsed from my resume: ${skills.join(', ')}. Please recommend 3 optimal career titles for me. Explain why they fit my skills. IMPORTANT: Based on these skills and recommended roles, generate direct search links for actual job openings on platforms like LinkedIn, Internshala, Indeed, etc., and present them as 'Apply Here' buttons/links in the markdown. Format this purely in beautifully structured Markdown for a developer dashboard.";
 
     try {
       final response = await http.post(
@@ -283,6 +284,14 @@ class _CareerPathScreenState extends State<CareerPathScreen> {
           else if (_recommendationsMarkdown != null)
             MarkdownBody(
               data: _recommendationsMarkdown!,
+              onTapLink: (text, href, title) async {
+                if (href != null) {
+                  final uri = Uri.parse(href);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                }
+              },
               styleSheet: MarkdownStyleSheet(
                 p: theme.textTheme.bodyMedium?.copyWith(
                   height: 1.6,

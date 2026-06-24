@@ -11,6 +11,7 @@ import 'package:universal_html/html.dart' as html;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../widgets/navbar.dart';
 import '../theme/app_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RoadmapScreen extends StatefulWidget {
   const RoadmapScreen({super.key});
@@ -53,7 +54,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
 
     final roleContext = company != null ? "$role at $company" : role;
     final prompt =
-        "Generate a comprehensive, expert-level step-by-step career roadmap to become a $roleContext. Include specific technologies, project milestones, and interview focus nodes. Format the response entirely in beautifully structured Markdown for a developer dashboard.";
+        "Generate a comprehensive, expert-level step-by-step career roadmap to become a $roleContext. Include specific technologies, project milestones, and interview focus nodes. IMPORTANT: Add direct links to recommended courses for these skills across platforms like Coursera, Udemy, Edx, etc., so the user can directly click and go to the course page. Format the response entirely in beautifully structured Markdown for a developer dashboard.";
 
     try {
       final response = await http.post(
@@ -181,6 +182,14 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                           : _roadmapMarkdown != null
                           ? MarkdownBody(
                               data: _roadmapMarkdown!,
+                              onTapLink: (text, href, title) async {
+                                if (href != null) {
+                                  final uri = Uri.parse(href);
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  }
+                                }
+                              },
                               styleSheet: MarkdownStyleSheet(
                                 p: theme.textTheme.bodyMedium?.copyWith(
                                   height: 1.6,

@@ -69,6 +69,19 @@ class _ResumeIntelligenceState extends State<ResumeIntelligence> {
         _nameController.text = auth.user!.displayName ?? "";
         _emailController.text = auth.user!.email ?? "";
       }
+      
+      final rs = ResumeService();
+      if (rs.resumeText.isNotEmpty && rs.extractedSkills.isNotEmpty) {
+        setState(() {
+          analysisResult = {
+            'resume_score': rs.resumeScore ?? 0,
+            'skills': rs.extractedSkills,
+            'missing_skills_for_roles': rs.dynamicMissingSkills,
+            'career_roadmap': null, // Use markdown from roadmap screen instead
+          };
+          selectedFile = PlatformFile(name: "Previously Analyzed Resume", size: 0);
+        });
+      }
     });
   }
 

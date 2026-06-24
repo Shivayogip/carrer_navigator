@@ -1,6 +1,6 @@
 flask
 flask-cors
-google-generativeai
+google-genai
 python-dotenv
 PyPDF2
 docx2txt

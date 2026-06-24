@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'login_screen.dart';
 import '../services/api_config.dart';
 import '../widgets/navbar.dart';
+import '../theme/app_theme.dart';
 
 // Tool Screens
 import 'ai_assistant_screen.dart';
@@ -311,6 +312,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                       user,
                                       theme,
                                     ).animate().scale(delay: 400.ms),
+                                  const SizedBox(width: 12),
+                                  _buildNotificationToggle(theme).animate().scale(delay: 450.ms),
                                 ],
                               ),
                               const SizedBox(height: 32),
@@ -341,8 +344,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
                               // Score / Banner
                               if (_userData != null &&
-                                  _userData!['score'] != null &&
-                                  _userData!['score'] > 0)
+                                  ((_userData!['score'] != null && int.tryParse(_userData!['score'].toString()) != null && int.parse(_userData!['score'].toString()) > 0) ||
+                                  (_userData!['resume_text'] != null && _userData!['resume_text'].toString().isNotEmpty)))
                                 _buildScoreCard(theme)
                                     .animate()
                                     .fadeIn(delay: 600.ms)
@@ -497,6 +500,29 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  Widget _buildNotificationToggle(ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _notificationsEnabled ? AppTheme.primaryNeon.withOpacity(0.1) : theme.cardColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: _notificationsEnabled ? AppTheme.primaryNeon : theme.dividerColor,
+        ),
+      ),
+      child: IconButton(
+        icon: Icon(
+          _notificationsEnabled ? Icons.notifications_active : Icons.notifications_off_outlined,
+          color: _notificationsEnabled ? AppTheme.primaryNeon : theme.disabledColor,
+          size: 20,
+        ),
+        tooltip: "Toggle Daily Reminders",
+        onPressed: () {
+          _toggleNotifications(!_notificationsEnabled);
+        },
+      ),
+    );
+  }
+
   Widget _buildScoreCard(ThemeData theme) {
     return Card(
       child: Padding(
@@ -510,7 +536,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   Text("RESUME_STRENGTH", style: theme.textTheme.labelLarge),
                   const SizedBox(height: 8),
                   Text(
-                    "${_userData!['score']}%",
+                    "${_userData!['score'] ?? 'N/A'}${_userData!['score'] != null ? '%' : ''}",
                     style: theme.textTheme.displayLarge?.copyWith(
                       color: theme.colorScheme.primary,
                       fontSize: 48,

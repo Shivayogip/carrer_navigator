@@ -1,6 +1,7 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,8 +10,8 @@ api_key = os.getenv("GEMINI_API_KEY")
 if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
     print("WARNING: GEMINI_API_KEY is not set correctly in .env file")
 
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel("gemini-flash-latest")
+client = genai.Client(api_key=api_key)
+MODEL = "gemini-2.0-flash"
 
 def analyze_resume(resume_text):
     prompt = f"""
@@ -31,13 +32,14 @@ def analyze_resume(resume_text):
     }}
     Resume Text: {resume_text}
     """
-    
+
     try:
-        response = model.generate_content(prompt)
-        
-        # Check if response was blocked
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+        )
+
         if not response.candidates:
-            print(f"Gemini analysis blocked. Prompt feedback: {response.prompt_feedback}")
             raise Exception("AI response was blocked by safety filters. Please try again.")
 
         text = response.text
@@ -46,21 +48,33 @@ def analyze_resume(resume_text):
         return json.loads(json_str)
     except Exception as e:
         print(f"Gemini analysis error: {str(e)}")
-        # Pass the actual error message for better debugging
         raise Exception(f"AI Analysis failed: {str(e)}")
+
 
 def chat_with_ai(user_message, history=None):
     if history is None:
         history = []
-    
-    # history in python SDK is a list of content objects
-    # [{"role": "user", "parts": ["..."]}, {"role": "model", "parts": ["..."]}]
-    chat = model.start_chat(history=history)
-    
+
+    # Build contents list from history + new message
+    contents = []
+    for h in history:
+        role = h.get("role", "user")
+        parts = h.get("parts", [])
+        if isinstance(parts, list):
+            text = " ".join(parts)
+        else:
+            text = str(parts)
+        contents.append(types.Content(role=role, parts=[types.Part(text=text)]))
+
+    # Add current user message
+    contents.append(types.Content(role="user", parts=[types.Part(text=user_message)]))
+
     try:
-        response = chat.send_message(user_message)
-        
-        # Check if response was blocked
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=contents,
+        )
+
         if not response.candidates:
             print(f"Gemini chat blocked. Prompt feedback: {response.prompt_feedback}")
             return "I'm sorry, I cannot respond to that message due to safety filters."
@@ -70,16 +84,16 @@ def chat_with_ai(user_message, history=None):
         print(f"Gemini chat error: {str(e)}")
         raise Exception(f"AI Assistant failed: {str(e)}")
 
+
 def analyze_github_profile(username, repos, events, target_role=None):
     context = f"Username: {username}\n"
     context += f"Target Role: {target_role if target_role else 'Full Stack Developer'}\n\n"
-    
+
     context += "Top Repositories:\n"
-    for repo in repos[:10]: # Analyze top 10
+    for repo in repos[:10]:  # Analyze top 10
         context += f"- {repo.get('name')}: {repo.get('description')} (Language: {repo.get('language')}, Stars: {repo.get('stargazers_count')})\n"
-    
+
     context += "\nRecent Activity Highlights:\n"
-    # Filter for interesting events
     for event in events[:15]:
         context += f"- {event.get('type')} at {event.get('repo', {}).get('name')} ({event.get('created_at')})\n"
 
@@ -96,9 +110,12 @@ def analyze_github_profile(username, repos, events, target_role=None):
     GitHub Context:
     {context}
     """
-    
+
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+        )
         if not response.candidates:
             raise Exception("AI response was blocked by safety filters.")
         return response.text
